@@ -1,5 +1,5 @@
 # Introduction
-- This repository contains code related to the paper “Multi-objective community detection for bipartite graphs” (see untouched/BipartiteCommunityPremium(2).pdf)
+- This repository contains code related to the paper “Multi-objective community detection for bipartite graphs” 
 - A Research IT work has been conducted to test the code, clean and rewrite it in a way to be shared with the community.
 
 ## File/directory description and usage
