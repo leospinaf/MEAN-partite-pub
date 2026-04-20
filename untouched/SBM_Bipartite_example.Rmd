@@ -1,0 +1,81 @@
+---
+title: "Untitled"
+author: "Luis Ospina-Forero"
+date: "02/02/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Stochastic Block model for bipartite graphs
+A work around to generate a bipartite graph with different community structures in R/Python using SBM from the `igraph` package.
+
+For python there is an equivalent function `SBM`<https://igraph.org/python/api/latest/igraph._igraph.GraphBase.html#SBM> other igraph functions <https://igraph.org/python/api/latest/igraph.Graph.html>, or the multilevel community detection <https://igraph.org/python/api/latest/igraph.Graph.html#community_multilevel>.
+
+## How to use SBM to generate bipartite graphs with community structure.
+
+Undirected and Unweighted Bipartite Network  with two communities and two modes (bipartite). 
+```{r,message=FALSE}
+require(igraph)
+
+nv <- 100 #nodes
+nc <- 2 #comm
+nb <- 2 * nc #blocks
+
+#Number of nodes in each community and mode.
+Com1_Mod1_nv <- 20 #nodes in community 1 that belong to mode 1.
+Com1_Mod2_nv <- 10
+Com2_Mod1_nv <- 40
+Com2_Mod2_nv <- 30
+sizes  <-  c(Com1_Mod1_nv,Com1_Mod2_nv,Com2_Mod1_nv,Com2_Mod2_nv)
+
+Com1p <- 0.4  #Probability  of connection between nodes in community one.
+Com2p <- 0.4  #Probability  of connection between nodes in community two.
+p <- 0.01 #General probability of connection  betwen nodes in differnt commmunities.
+
+community_prob <- matrix(nrow=nb, ncol=nb,0)
+rownames(community_prob) <- c("Com1_Mod1","Com1_Mod2","Com2_Mod1","Com2_Mod2")
+colnames(community_prob) <- c("Com1_Mod1","Com1_Mod2","Com2_Mod1","Com2_Mod2")
+community_prob[1,2] <-  Com1p
+community_prob[3,4] <-  Com2p
+
+community_prob[1,4] <-  p
+community_prob[2,3] <-  p
+
+community_prob <- (community_prob+t(community_prob))
+```
+
+The resulting probability of connection between nodes of different blocks
+```{r}
+community_prob
+```
+
+
+Generation of the graph via *sample_sbm*.
+```{r}
+bipG <- sample_sbm(nv,community_prob,sizes,directed = FALSE,loops = FALSE)
+
+Modes <- c(rep(1,Com1_Mod1_nv),rep(2,Com1_Mod2_nv),rep(1,Com2_Mod1_nv),rep(2,Com2_Mod2_nv))
+Coms <- c(rep(1,Com1_Mod1_nv+Com1_Mod2_nv),rep(2,Com2_Mod1_nv+Com2_Mod2_nv))
+
+bipG
+```
+
+
+## Plotting accorrding to mode or community
+Note that the nodes in the graph are ordered according the block order in `community_prob`, i.e. `c("Com1_Mod1","Com1_Mod2","Com2_Mod1","Com2_Mod2")`.
+
+
+```{r,fig.dim=c(20,20)}
+col<-c("red","blue")
+Shape<- c("circle", "square")
+plot(bipG,vertex.color= col[Coms], vertex.shape=Shape[Modes],vertex.size=8)
+
+plot(bipG,vertex.color= col[Coms], vertex.shape=Shape[Modes],layout = layout_as_bipartite(bipG,types = Modes==1),edge.curve=TRUE,vertex.size=5,vertex.cex=1)
+
+adj <- get.adjacency(bipG)
+
+```
+
