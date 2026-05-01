@@ -5,7 +5,6 @@ from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.cluster import adjusted_rand_score
 import condor
 from moo.utils import nostdout
-#from condor import condor
 import sknetwork
 import cdlib
 import moo.skbio_gini as skbio_gini
