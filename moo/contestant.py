@@ -840,7 +840,7 @@ class ComDetBiLouvain(CommunityDetector):
 
 import pymocd
 
-class ComDetAriadne(CommunityDetector):
+class ComDetariadne(CommunityDetector):
     def __init__(self, name="ariadne", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
         #TODO: A range of cluster with a possibility to generate automatically (str argument)
         super().__init__(name)
