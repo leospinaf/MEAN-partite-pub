@@ -838,6 +838,786 @@ class ComDetBiLouvain(CommunityDetector):
     #     # Returns the community detection results (dict free format)
     #     return self.results_
 
+import pymocd
+
+class ComDetAriadne(CommunityDetector):
+    def __init__(self, name="ariadne", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        #TODO: A range of cluster with a possibility to generate automatically (str argument)
+        super().__init__(name)
+        self.params_ = params
+
+        assert min_num_clusters >= 1 and min_num_clusters <= max_num_clusters,\
+        f"The minimum {min_num_clusters} and maximum {max_num_clusters} cluster numbers are not valid"
+        self.min_num_clusters_ = min_num_clusters
+        self.max_num_clusters_ = max_num_clusters
+
+    def check_graph(self, graph):
+        super().check_graph(graph)
+        # Additional checks go here
+
+    def detect_communities(self, graph, y=None):
+        #TODO: fit instead of this and y as groundtruth or None to infer from the graph
+        # Some checks
+        self.check_graph(graph)
+        self.graph_ = graph
+        self.results_ = [] # Reset results at each call
+        # Community detection done here (results stored in self.results_)
+        self.__detect_communitites()
+        return self # Needs to return self
+
+    def __detect_communitites(self):
+        # Actual community detection code
+        vertices = list(map(int, self.graph_.vs['type']))
+        n_vertices = len(self.graph_.vs)
+        ground_truth = self.graph_.vs['GT']
+        ## To work with the bilabels, we need to make gt0 and gt1 list proj0.
+        gt0 = [v['GT'] for v in self.graph_.vs if v['type'] == 0]
+        gt1 = [v['GT'] for v in self.graph_.vs if v['type'] == 1]
+        proj0 = [i for i, val in enumerate(vertices) if val == 0]
+        proj1 = [i for i, val in enumerate(vertices) if val == 1]
+        graph_proj1, graph_proj2 = self.graph_.bipartite_projection(multiplicity=True)
+
+        badj = make_badj(self.graph_)
+
+        ## Run Ariadne directly on the whole bipartite igraph object. pymocd's
+        ## igraph ingestion uses vertex.index as the node id, which matches
+        ## self.graph_.vs ordering exactly, so we can read the result straight
+        ## back into a graph_labels list.
+        raw_partition = pymocd.ariadne(self.graph_)
+        raw_graph_labels = [raw_partition[i] for i in range(n_vertices)]
+
+        ## Ariadne assigns isolated nodes the shared sentinel community -1,
+        ## but they aren't actually connected to one another, so give each
+        ## isolated node its own singleton community instead of lumping them
+        ## together. The rest of this pipeline (igraph.modularity, list-
+        ## indexed community buckets) expects contiguous non-negative labels
+        ## starting at 0, so remap real communities first, then append one
+        ## fresh id per isolated node.
+        real_labels = sorted(set(raw_graph_labels) - {-1})
+        relabel = {lab: idx for idx, lab in enumerate(real_labels)}
+        next_id = len(real_labels)
+        graph_labels = []
+        for lab in raw_graph_labels:
+            if lab == -1:
+                graph_labels.append(next_id)
+                next_id += 1
+            else:
+                graph_labels.append(relabel[lab])
+
+        proj0_labels = [graph_labels[i] for i in proj0]
+        proj1_labels = [graph_labels[i] for i in proj1]
+
+        modularity_score = self.graph_.modularity(graph_labels)
+        modularity_score_barber = sknetwork.clustering.bimodularity(badj, proj0_labels, proj1_labels)
+
+        modularity_score_murata = modularity_murata(badj, proj0_labels+proj1_labels)
+        modularity_score_1 = graph_proj1.modularity(proj0_labels, weights=graph_proj1.es['weight'])
+        modularity_score_2 = graph_proj2.modularity(proj1_labels, weights=graph_proj2.es['weight'])
+        adj_rand_index = adjusted_rand_score(gt0+gt1, proj0_labels+proj1_labels)
+
+        communities = [[] for i in range(max(graph_labels)+1)] ## List of list of node ids.
+        for i, lab in enumerate(graph_labels):
+            communities[lab].append(i)
+        clust = cdlib.NodeClustering(communities, graph=None, method_name=self.name_)
+        conductance = cdlib.evaluation.conductance(self.graph_, clust).score
+        coverage = cdlib.evaluation.edges_inside(self.graph_, clust).score
+        performance = bi_performance(badj, proj0_labels+proj1_labels)
+        gini = skbio_gini.gini_index([len(c) for c in communities])
+
+        result = dict(
+            name=self.name_,
+            num_clusters=(max(graph_labels)+1),
+            modularity_score=modularity_score,
+            modularity_score_barber=modularity_score_barber,
+            modularity_score_murata=modularity_score_murata,
+            modularity_score_1=modularity_score_1,
+            modularity_score_2=modularity_score_2,
+            adj_rand_index=adj_rand_index,
+            conductance=conductance,
+            coverage=coverage,
+            performance=performance,
+            gini=gini
+            )
+        self.results_.append(result)
+
+    # Optional overriding
+    # def get_results(self):
+    #     # Returns the community detection results (dict free format)
+    #     return self.results_
+
+
+class ComDethpmocd(CommunityDetector):
+    def __init__(self, name="hpmocd", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        #TODO: A range of cluster with a possibility to generate automatically (str argument)
+        super().__init__(name)
+        self.params_ = params
+
+        assert min_num_clusters >= 1 and min_num_clusters <= max_num_clusters,\
+        f"The minimum {min_num_clusters} and maximum {max_num_clusters} cluster numbers are not valid"
+        self.min_num_clusters_ = min_num_clusters
+        self.max_num_clusters_ = max_num_clusters
+
+    def check_graph(self, graph):
+        super().check_graph(graph)
+        # Additional checks go here
+
+    def detect_communities(self, graph, y=None):
+        #TODO: fit instead of this and y as groundtruth or None to infer from the graph
+        # Some checks
+        self.check_graph(graph)
+        self.graph_ = graph
+        self.results_ = [] # Reset results at each call
+        # Community detection done here (results stored in self.results_)
+        self.__detect_communitites()
+        return self # Needs to return self
+
+    def __detect_communitites(self):
+        # Actual community detection code
+        vertices = list(map(int, self.graph_.vs['type']))
+        n_vertices = len(self.graph_.vs)
+        ground_truth = self.graph_.vs['GT']
+        ## To work with the bilabels, we need to make gt0 and gt1 list proj0.
+        gt0 = [v['GT'] for v in self.graph_.vs if v['type'] == 0]
+        gt1 = [v['GT'] for v in self.graph_.vs if v['type'] == 1]
+        proj0 = [i for i, val in enumerate(vertices) if val == 0]
+        proj1 = [i for i, val in enumerate(vertices) if val == 1]
+        graph_proj1, graph_proj2 = self.graph_.bipartite_projection(multiplicity=True)
+
+        badj = make_badj(self.graph_)
+
+        ## Run hpmocd
+        raw_partition = pymocd.hpmocd(self.graph_)
+        raw_graph_labels = [raw_partition[i] for i in range(n_vertices)]
+
+        ## Make sure singletons are labelled as their own communities.
+        real_labels = sorted(set(raw_graph_labels) - {-1})
+        relabel = {lab: idx for idx, lab in enumerate(real_labels)}
+        next_id = len(real_labels)
+        graph_labels = []
+        for lab in raw_graph_labels:
+            if lab == -1:
+                graph_labels.append(next_id)
+                next_id += 1
+            else:
+                graph_labels.append(relabel[lab])
+
+        proj0_labels = [graph_labels[i] for i in proj0]
+        proj1_labels = [graph_labels[i] for i in proj1]
+
+        modularity_score = self.graph_.modularity(graph_labels)
+        modularity_score_barber = sknetwork.clustering.bimodularity(badj, proj0_labels, proj1_labels)
+
+        modularity_score_murata = modularity_murata(badj, proj0_labels+proj1_labels)
+        modularity_score_1 = graph_proj1.modularity(proj0_labels, weights=graph_proj1.es['weight'])
+        modularity_score_2 = graph_proj2.modularity(proj1_labels, weights=graph_proj2.es['weight'])
+        adj_rand_index = adjusted_rand_score(gt0+gt1, proj0_labels+proj1_labels)
+
+        communities = [[] for i in range(max(graph_labels)+1)] ## List of list of node ids.
+        for i, lab in enumerate(graph_labels):
+            communities[lab].append(i)
+        clust = cdlib.NodeClustering(communities, graph=None, method_name=self.name_)
+        conductance = cdlib.evaluation.conductance(self.graph_, clust).score
+        coverage = cdlib.evaluation.edges_inside(self.graph_, clust).score
+        performance = bi_performance(badj, proj0_labels+proj1_labels)
+        gini = skbio_gini.gini_index([len(c) for c in communities])
+
+        result = dict(
+            name=self.name_,
+            num_clusters=(max(graph_labels)+1),
+            modularity_score=modularity_score,
+            modularity_score_barber=modularity_score_barber,
+            modularity_score_murata=modularity_score_murata,
+            modularity_score_1=modularity_score_1,
+            modularity_score_2=modularity_score_2,
+            adj_rand_index=adj_rand_index,
+            conductance=conductance,
+            coverage=coverage,
+            performance=performance,
+            gini=gini
+            )
+        self.results_.append(result)
+
+    # Optional overriding
+    # def get_results(self):
+    #     # Returns the community detection results (dict free format)
+    #     return self.results_
+
+class ComDetmocd_q(CommunityDetector):
+    def __init__(self, name="mocd_q", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        #TODO: A range of cluster with a possibility to generate automatically (str argument)
+        super().__init__(name)
+        self.params_ = params
+
+        assert min_num_clusters >= 1 and min_num_clusters <= max_num_clusters,\
+        f"The minimum {min_num_clusters} and maximum {max_num_clusters} cluster numbers are not valid"
+        self.min_num_clusters_ = min_num_clusters
+        self.max_num_clusters_ = max_num_clusters
+
+    def check_graph(self, graph):
+        super().check_graph(graph)
+        # Additional checks go here
+
+    def detect_communities(self, graph, y=None):
+        #TODO: fit instead of this and y as groundtruth or None to infer from the graph
+        # Some checks
+        self.check_graph(graph)
+        self.graph_ = graph
+        self.results_ = [] # Reset results at each call
+        # Community detection done here (results stored in self.results_)
+        self.__detect_communitites()
+        return self # Needs to return self
+
+    def __detect_communitites(self):
+        # Actual community detection code
+        vertices = list(map(int, self.graph_.vs['type']))
+        n_vertices = len(self.graph_.vs)
+        ground_truth = self.graph_.vs['GT']
+        ## To work with the bilabels, we need to make gt0 and gt1 list proj0.
+        gt0 = [v['GT'] for v in self.graph_.vs if v['type'] == 0]
+        gt1 = [v['GT'] for v in self.graph_.vs if v['type'] == 1]
+        proj0 = [i for i, val in enumerate(vertices) if val == 0]
+        proj1 = [i for i, val in enumerate(vertices) if val == 1]
+        graph_proj1, graph_proj2 = self.graph_.bipartite_projection(multiplicity=True)
+
+        badj = make_badj(self.graph_)
+
+        ## Run mocd_q
+        raw_partition = pymocd.mocd_q(self.graph_)
+        raw_graph_labels = [raw_partition[i] for i in range(n_vertices)]
+
+        ## Make sure singletons are labelled as their own communities.
+        real_labels = sorted(set(raw_graph_labels) - {-1})
+        relabel = {lab: idx for idx, lab in enumerate(real_labels)}
+        next_id = len(real_labels)
+        graph_labels = []
+        for lab in raw_graph_labels:
+            if lab == -1:
+                graph_labels.append(next_id)
+                next_id += 1
+            else:
+                graph_labels.append(relabel[lab])
+
+        proj0_labels = [graph_labels[i] for i in proj0]
+        proj1_labels = [graph_labels[i] for i in proj1]
+
+        modularity_score = self.graph_.modularity(graph_labels)
+        modularity_score_barber = sknetwork.clustering.bimodularity(badj, proj0_labels, proj1_labels)
+
+        modularity_score_murata = modularity_murata(badj, proj0_labels+proj1_labels)
+        modularity_score_1 = graph_proj1.modularity(proj0_labels, weights=graph_proj1.es['weight'])
+        modularity_score_2 = graph_proj2.modularity(proj1_labels, weights=graph_proj2.es['weight'])
+        adj_rand_index = adjusted_rand_score(gt0+gt1, proj0_labels+proj1_labels)
+
+        communities = [[] for i in range(max(graph_labels)+1)] ## List of list of node ids.
+        for i, lab in enumerate(graph_labels):
+            communities[lab].append(i)
+        clust = cdlib.NodeClustering(communities, graph=None, method_name=self.name_)
+        conductance = cdlib.evaluation.conductance(self.graph_, clust).score
+        coverage = cdlib.evaluation.edges_inside(self.graph_, clust).score
+        performance = bi_performance(badj, proj0_labels+proj1_labels)
+        gini = skbio_gini.gini_index([len(c) for c in communities])
+
+        result = dict(
+            name=self.name_,
+            num_clusters=(max(graph_labels)+1),
+            modularity_score=modularity_score,
+            modularity_score_barber=modularity_score_barber,
+            modularity_score_murata=modularity_score_murata,
+            modularity_score_1=modularity_score_1,
+            modularity_score_2=modularity_score_2,
+            adj_rand_index=adj_rand_index,
+            conductance=conductance,
+            coverage=coverage,
+            performance=performance,
+            gini=gini
+            )
+        self.results_.append(result)
+
+    # Optional overriding
+    # def get_results(self):
+    #     # Returns the community detection results (dict free format)
+    #     return self.results_
+
+class ComDetmocd_d(CommunityDetector):
+    def __init__(self, name="mocd_d", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        #TODO: A range of cluster with a possibility to generate automatically (str argument)
+        super().__init__(name)
+        self.params_ = params
+
+        assert min_num_clusters >= 1 and min_num_clusters <= max_num_clusters,\
+        f"The minimum {min_num_clusters} and maximum {max_num_clusters} cluster numbers are not valid"
+        self.min_num_clusters_ = min_num_clusters
+        self.max_num_clusters_ = max_num_clusters
+
+    def check_graph(self, graph):
+        super().check_graph(graph)
+        # Additional checks go here
+
+    def detect_communities(self, graph, y=None):
+        #TODO: fit instead of this and y as groundtruth or None to infer from the graph
+        # Some checks
+        self.check_graph(graph)
+        self.graph_ = graph
+        self.results_ = [] # Reset results at each call
+        # Community detection done here (results stored in self.results_)
+        self.__detect_communitites()
+        return self # Needs to return self
+
+    def __detect_communitites(self):
+        # Actual community detection code
+        vertices = list(map(int, self.graph_.vs['type']))
+        n_vertices = len(self.graph_.vs)
+        ground_truth = self.graph_.vs['GT']
+        ## To work with the bilabels, we need to make gt0 and gt1 list proj0.
+        gt0 = [v['GT'] for v in self.graph_.vs if v['type'] == 0]
+        gt1 = [v['GT'] for v in self.graph_.vs if v['type'] == 1]
+        proj0 = [i for i, val in enumerate(vertices) if val == 0]
+        proj1 = [i for i, val in enumerate(vertices) if val == 1]
+        graph_proj1, graph_proj2 = self.graph_.bipartite_projection(multiplicity=True)
+
+        badj = make_badj(self.graph_)
+
+        ## Run mocd_d
+        raw_partition = pymocd.mocd_d(self.graph_)
+        raw_graph_labels = [raw_partition[i] for i in range(n_vertices)]
+
+        ## Make sure singletons are labelled as their own communities.
+        real_labels = sorted(set(raw_graph_labels) - {-1})
+        relabel = {lab: idx for idx, lab in enumerate(real_labels)}
+        next_id = len(real_labels)
+        graph_labels = []
+        for lab in raw_graph_labels:
+            if lab == -1:
+                graph_labels.append(next_id)
+                next_id += 1
+            else:
+                graph_labels.append(relabel[lab])
+
+        proj0_labels = [graph_labels[i] for i in proj0]
+        proj1_labels = [graph_labels[i] for i in proj1]
+
+        modularity_score = self.graph_.modularity(graph_labels)
+        modularity_score_barber = sknetwork.clustering.bimodularity(badj, proj0_labels, proj1_labels)
+
+        modularity_score_murata = modularity_murata(badj, proj0_labels+proj1_labels)
+        modularity_score_1 = graph_proj1.modularity(proj0_labels, weights=graph_proj1.es['weight'])
+        modularity_score_2 = graph_proj2.modularity(proj1_labels, weights=graph_proj2.es['weight'])
+        adj_rand_index = adjusted_rand_score(gt0+gt1, proj0_labels+proj1_labels)
+
+        communities = [[] for i in range(max(graph_labels)+1)] ## List of list of node ids.
+        for i, lab in enumerate(graph_labels):
+            communities[lab].append(i)
+        clust = cdlib.NodeClustering(communities, graph=None, method_name=self.name_)
+        conductance = cdlib.evaluation.conductance(self.graph_, clust).score
+        coverage = cdlib.evaluation.edges_inside(self.graph_, clust).score
+        performance = bi_performance(badj, proj0_labels+proj1_labels)
+        gini = skbio_gini.gini_index([len(c) for c in communities])
+
+        result = dict(
+            name=self.name_,
+            num_clusters=(max(graph_labels)+1),
+            modularity_score=modularity_score,
+            modularity_score_barber=modularity_score_barber,
+            modularity_score_murata=modularity_score_murata,
+            modularity_score_1=modularity_score_1,
+            modularity_score_2=modularity_score_2,
+            adj_rand_index=adj_rand_index,
+            conductance=conductance,
+            coverage=coverage,
+            performance=performance,
+            gini=gini
+            )
+        self.results_.append(result)
+
+    # Optional overriding
+    # def get_results(self):
+    #     # Returns the community detection results (dict free format)
+    #     return self.results_
+
+
+class ComDetmoga_net(CommunityDetector):
+    def __init__(self, name="moga_net", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        #TODO: A range of cluster with a possibility to generate automatically (str argument)
+        super().__init__(name)
+        self.params_ = params
+
+        assert min_num_clusters >= 1 and min_num_clusters <= max_num_clusters,\
+        f"The minimum {min_num_clusters} and maximum {max_num_clusters} cluster numbers are not valid"
+        self.min_num_clusters_ = min_num_clusters
+        self.max_num_clusters_ = max_num_clusters
+
+    def check_graph(self, graph):
+        super().check_graph(graph)
+        # Additional checks go here
+
+    def detect_communities(self, graph, y=None):
+        #TODO: fit instead of this and y as groundtruth or None to infer from the graph
+        # Some checks
+        self.check_graph(graph)
+        self.graph_ = graph
+        self.results_ = [] # Reset results at each call
+        # Community detection done here (results stored in self.results_)
+        self.__detect_communitites()
+        return self # Needs to return self
+
+    def __detect_communitites(self):
+        # Actual community detection code
+        vertices = list(map(int, self.graph_.vs['type']))
+        n_vertices = len(self.graph_.vs)
+        ground_truth = self.graph_.vs['GT']
+        ## To work with the bilabels, we need to make gt0 and gt1 list proj0.
+        gt0 = [v['GT'] for v in self.graph_.vs if v['type'] == 0]
+        gt1 = [v['GT'] for v in self.graph_.vs if v['type'] == 1]
+        proj0 = [i for i, val in enumerate(vertices) if val == 0]
+        proj1 = [i for i, val in enumerate(vertices) if val == 1]
+        graph_proj1, graph_proj2 = self.graph_.bipartite_projection(multiplicity=True)
+
+        badj = make_badj(self.graph_)
+
+        ## Run moga_net
+        raw_partition = pymocd.moga_net(self.graph_)
+        raw_graph_labels = [raw_partition[i] for i in range(n_vertices)]
+
+        ## Make sure singletons are labelled as their own communities.
+        real_labels = sorted(set(raw_graph_labels) - {-1})
+        relabel = {lab: idx for idx, lab in enumerate(real_labels)}
+        next_id = len(real_labels)
+        graph_labels = []
+        for lab in raw_graph_labels:
+            if lab == -1:
+                graph_labels.append(next_id)
+                next_id += 1
+            else:
+                graph_labels.append(relabel[lab])
+
+        proj0_labels = [graph_labels[i] for i in proj0]
+        proj1_labels = [graph_labels[i] for i in proj1]
+
+        modularity_score = self.graph_.modularity(graph_labels)
+        modularity_score_barber = sknetwork.clustering.bimodularity(badj, proj0_labels, proj1_labels)
+
+        modularity_score_murata = modularity_murata(badj, proj0_labels+proj1_labels)
+        modularity_score_1 = graph_proj1.modularity(proj0_labels, weights=graph_proj1.es['weight'])
+        modularity_score_2 = graph_proj2.modularity(proj1_labels, weights=graph_proj2.es['weight'])
+        adj_rand_index = adjusted_rand_score(gt0+gt1, proj0_labels+proj1_labels)
+
+        communities = [[] for i in range(max(graph_labels)+1)] ## List of list of node ids.
+        for i, lab in enumerate(graph_labels):
+            communities[lab].append(i)
+        clust = cdlib.NodeClustering(communities, graph=None, method_name=self.name_)
+        conductance = cdlib.evaluation.conductance(self.graph_, clust).score
+        coverage = cdlib.evaluation.edges_inside(self.graph_, clust).score
+        performance = bi_performance(badj, proj0_labels+proj1_labels)
+        gini = skbio_gini.gini_index([len(c) for c in communities])
+
+        result = dict(
+            name=self.name_,
+            num_clusters=(max(graph_labels)+1),
+            modularity_score=modularity_score,
+            modularity_score_barber=modularity_score_barber,
+            modularity_score_murata=modularity_score_murata,
+            modularity_score_1=modularity_score_1,
+            modularity_score_2=modularity_score_2,
+            adj_rand_index=adj_rand_index,
+            conductance=conductance,
+            coverage=coverage,
+            performance=performance,
+            gini=gini
+            )
+        self.results_.append(result)
+
+    # Optional overriding
+    # def get_results(self):
+    #     # Returns the community detection results (dict free format)
+    #     return self.results_
+
+class ComDetccm(CommunityDetector):
+    def __init__(self, name="ccm", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        #TODO: A range of cluster with a possibility to generate automatically (str argument)
+        super().__init__(name)
+        self.params_ = params
+
+        assert min_num_clusters >= 1 and min_num_clusters <= max_num_clusters,\
+        f"The minimum {min_num_clusters} and maximum {max_num_clusters} cluster numbers are not valid"
+        self.min_num_clusters_ = min_num_clusters
+        self.max_num_clusters_ = max_num_clusters
+
+    def check_graph(self, graph):
+        super().check_graph(graph)
+        # Additional checks go here
+
+    def detect_communities(self, graph, y=None):
+        #TODO: fit instead of this and y as groundtruth or None to infer from the graph
+        # Some checks
+        self.check_graph(graph)
+        self.graph_ = graph
+        self.results_ = [] # Reset results at each call
+        # Community detection done here (results stored in self.results_)
+        self.__detect_communitites()
+        return self # Needs to return self
+
+    def __detect_communitites(self):
+        # Actual community detection code
+        vertices = list(map(int, self.graph_.vs['type']))
+        n_vertices = len(self.graph_.vs)
+        ground_truth = self.graph_.vs['GT']
+        ## To work with the bilabels, we need to make gt0 and gt1 list proj0.
+        gt0 = [v['GT'] for v in self.graph_.vs if v['type'] == 0]
+        gt1 = [v['GT'] for v in self.graph_.vs if v['type'] == 1]
+        proj0 = [i for i, val in enumerate(vertices) if val == 0]
+        proj1 = [i for i, val in enumerate(vertices) if val == 1]
+        graph_proj1, graph_proj2 = self.graph_.bipartite_projection(multiplicity=True)
+
+        badj = make_badj(self.graph_)
+
+        ## Run ccm
+        raw_partition = pymocd.ccm(self.graph_)
+        raw_graph_labels = [raw_partition[i] for i in range(n_vertices)]
+
+        ## Make sure singletons are labelled as their own communities.
+        real_labels = sorted(set(raw_graph_labels) - {-1})
+        relabel = {lab: idx for idx, lab in enumerate(real_labels)}
+        next_id = len(real_labels)
+        graph_labels = []
+        for lab in raw_graph_labels:
+            if lab == -1:
+                graph_labels.append(next_id)
+                next_id += 1
+            else:
+                graph_labels.append(relabel[lab])
+
+        proj0_labels = [graph_labels[i] for i in proj0]
+        proj1_labels = [graph_labels[i] for i in proj1]
+
+        modularity_score = self.graph_.modularity(graph_labels)
+        modularity_score_barber = sknetwork.clustering.bimodularity(badj, proj0_labels, proj1_labels)
+
+        modularity_score_murata = modularity_murata(badj, proj0_labels+proj1_labels)
+        modularity_score_1 = graph_proj1.modularity(proj0_labels, weights=graph_proj1.es['weight'])
+        modularity_score_2 = graph_proj2.modularity(proj1_labels, weights=graph_proj2.es['weight'])
+        adj_rand_index = adjusted_rand_score(gt0+gt1, proj0_labels+proj1_labels)
+
+        communities = [[] for i in range(max(graph_labels)+1)] ## List of list of node ids.
+        for i, lab in enumerate(graph_labels):
+            communities[lab].append(i)
+        clust = cdlib.NodeClustering(communities, graph=None, method_name=self.name_)
+        conductance = cdlib.evaluation.conductance(self.graph_, clust).score
+        coverage = cdlib.evaluation.edges_inside(self.graph_, clust).score
+        performance = bi_performance(badj, proj0_labels+proj1_labels)
+        gini = skbio_gini.gini_index([len(c) for c in communities])
+
+        result = dict(
+            name=self.name_,
+            num_clusters=(max(graph_labels)+1),
+            modularity_score=modularity_score,
+            modularity_score_barber=modularity_score_barber,
+            modularity_score_murata=modularity_score_murata,
+            modularity_score_1=modularity_score_1,
+            modularity_score_2=modularity_score_2,
+            adj_rand_index=adj_rand_index,
+            conductance=conductance,
+            coverage=coverage,
+            performance=performance,
+            gini=gini
+            )
+        self.results_.append(result)
+
+    # Optional overriding
+    # def get_results(self):
+    #     # Returns the community detection results (dict free format)
+    #     return self.results_
+
+class ComDetkrm(CommunityDetector):
+    def __init__(self, name="krm", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        #TODO: A range of cluster with a possibility to generate automatically (str argument)
+        super().__init__(name)
+        self.params_ = params
+
+        assert min_num_clusters >= 1 and min_num_clusters <= max_num_clusters,\
+        f"The minimum {min_num_clusters} and maximum {max_num_clusters} cluster numbers are not valid"
+        self.min_num_clusters_ = min_num_clusters
+        self.max_num_clusters_ = max_num_clusters
+
+    def check_graph(self, graph):
+        super().check_graph(graph)
+        # Additional checks go here
+
+    def detect_communities(self, graph, y=None):
+        #TODO: fit instead of this and y as groundtruth or None to infer from the graph
+        # Some checks
+        self.check_graph(graph)
+        self.graph_ = graph
+        self.results_ = [] # Reset results at each call
+        # Community detection done here (results stored in self.results_)
+        self.__detect_communitites()
+        return self # Needs to return self
+
+    def __detect_communitites(self):
+        # Actual community detection code
+        vertices = list(map(int, self.graph_.vs['type']))
+        n_vertices = len(self.graph_.vs)
+        ground_truth = self.graph_.vs['GT']
+        ## To work with the bilabels, we need to make gt0 and gt1 list proj0.
+        gt0 = [v['GT'] for v in self.graph_.vs if v['type'] == 0]
+        gt1 = [v['GT'] for v in self.graph_.vs if v['type'] == 1]
+        proj0 = [i for i, val in enumerate(vertices) if val == 0]
+        proj1 = [i for i, val in enumerate(vertices) if val == 1]
+        graph_proj1, graph_proj2 = self.graph_.bipartite_projection(multiplicity=True)
+
+        badj = make_badj(self.graph_)
+
+        ## Run krm
+        raw_partition = pymocd.krm(self.graph_)
+        raw_graph_labels = [raw_partition[i] for i in range(n_vertices)]
+
+        ## Make sure singletons are labelled as their own communities.
+        real_labels = sorted(set(raw_graph_labels) - {-1})
+        relabel = {lab: idx for idx, lab in enumerate(real_labels)}
+        next_id = len(real_labels)
+        graph_labels = []
+        for lab in raw_graph_labels:
+            if lab == -1:
+                graph_labels.append(next_id)
+                next_id += 1
+            else:
+                graph_labels.append(relabel[lab])
+
+        proj0_labels = [graph_labels[i] for i in proj0]
+        proj1_labels = [graph_labels[i] for i in proj1]
+
+        modularity_score = self.graph_.modularity(graph_labels)
+        modularity_score_barber = sknetwork.clustering.bimodularity(badj, proj0_labels, proj1_labels)
+
+        modularity_score_murata = modularity_murata(badj, proj0_labels+proj1_labels)
+        modularity_score_1 = graph_proj1.modularity(proj0_labels, weights=graph_proj1.es['weight'])
+        modularity_score_2 = graph_proj2.modularity(proj1_labels, weights=graph_proj2.es['weight'])
+        adj_rand_index = adjusted_rand_score(gt0+gt1, proj0_labels+proj1_labels)
+
+        communities = [[] for i in range(max(graph_labels)+1)] ## List of list of node ids.
+        for i, lab in enumerate(graph_labels):
+            communities[lab].append(i)
+        clust = cdlib.NodeClustering(communities, graph=None, method_name=self.name_)
+        conductance = cdlib.evaluation.conductance(self.graph_, clust).score
+        coverage = cdlib.evaluation.edges_inside(self.graph_, clust).score
+        performance = bi_performance(badj, proj0_labels+proj1_labels)
+        gini = skbio_gini.gini_index([len(c) for c in communities])
+
+        result = dict(
+            name=self.name_,
+            num_clusters=(max(graph_labels)+1),
+            modularity_score=modularity_score,
+            modularity_score_barber=modularity_score_barber,
+            modularity_score_murata=modularity_score_murata,
+            modularity_score_1=modularity_score_1,
+            modularity_score_2=modularity_score_2,
+            adj_rand_index=adj_rand_index,
+            conductance=conductance,
+            coverage=coverage,
+            performance=performance,
+            gini=gini
+            )
+        self.results_.append(result)
+
+    # Optional overriding
+    # def get_results(self):
+    #     # Returns the community detection results (dict free format)
+    #     return self.results_
+
+class ComDetmmcomo(CommunityDetector):
+    def __init__(self, name="mmcomo", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        #TODO: A range of cluster with a possibility to generate automatically (str argument)
+        super().__init__(name)
+        self.params_ = params
+
+        assert min_num_clusters >= 1 and min_num_clusters <= max_num_clusters,\
+        f"The minimum {min_num_clusters} and maximum {max_num_clusters} cluster numbers are not valid"
+        self.min_num_clusters_ = min_num_clusters
+        self.max_num_clusters_ = max_num_clusters
+
+    def check_graph(self, graph):
+        super().check_graph(graph)
+        # Additional checks go here
+
+    def detect_communities(self, graph, y=None):
+        #TODO: fit instead of this and y as groundtruth or None to infer from the graph
+        # Some checks
+        self.check_graph(graph)
+        self.graph_ = graph
+        self.results_ = [] # Reset results at each call
+        # Community detection done here (results stored in self.results_)
+        self.__detect_communitites()
+        return self # Needs to return self
+
+    def __detect_communitites(self):
+        # Actual community detection code
+        vertices = list(map(int, self.graph_.vs['type']))
+        n_vertices = len(self.graph_.vs)
+        ground_truth = self.graph_.vs['GT']
+        ## To work with the bilabels, we need to make gt0 and gt1 list proj0.
+        gt0 = [v['GT'] for v in self.graph_.vs if v['type'] == 0]
+        gt1 = [v['GT'] for v in self.graph_.vs if v['type'] == 1]
+        proj0 = [i for i, val in enumerate(vertices) if val == 0]
+        proj1 = [i for i, val in enumerate(vertices) if val == 1]
+        graph_proj1, graph_proj2 = self.graph_.bipartite_projection(multiplicity=True)
+
+        badj = make_badj(self.graph_)
+
+        ## Run mmcomo
+        raw_partition = pymocd.mmcomo(self.graph_)
+        raw_graph_labels = [raw_partition[i] for i in range(n_vertices)]
+
+        ## Make sure singletons are labelled as their own communities.
+        real_labels = sorted(set(raw_graph_labels) - {-1})
+        relabel = {lab: idx for idx, lab in enumerate(real_labels)}
+        next_id = len(real_labels)
+        graph_labels = []
+        for lab in raw_graph_labels:
+            if lab == -1:
+                graph_labels.append(next_id)
+                next_id += 1
+            else:
+                graph_labels.append(relabel[lab])
+
+        proj0_labels = [graph_labels[i] for i in proj0]
+        proj1_labels = [graph_labels[i] for i in proj1]
+
+        modularity_score = self.graph_.modularity(graph_labels)
+        modularity_score_barber = sknetwork.clustering.bimodularity(badj, proj0_labels, proj1_labels)
+
+        modularity_score_murata = modularity_murata(badj, proj0_labels+proj1_labels)
+        modularity_score_1 = graph_proj1.modularity(proj0_labels, weights=graph_proj1.es['weight'])
+        modularity_score_2 = graph_proj2.modularity(proj1_labels, weights=graph_proj2.es['weight'])
+        adj_rand_index = adjusted_rand_score(gt0+gt1, proj0_labels+proj1_labels)
+
+        communities = [[] for i in range(max(graph_labels)+1)] ## List of list of node ids.
+        for i, lab in enumerate(graph_labels):
+            communities[lab].append(i)
+        clust = cdlib.NodeClustering(communities, graph=None, method_name=self.name_)
+        conductance = cdlib.evaluation.conductance(self.graph_, clust).score
+        coverage = cdlib.evaluation.edges_inside(self.graph_, clust).score
+        performance = bi_performance(badj, proj0_labels+proj1_labels)
+        gini = skbio_gini.gini_index([len(c) for c in communities])
+
+        result = dict(
+            name=self.name_,
+            num_clusters=(max(graph_labels)+1),
+            modularity_score=modularity_score,
+            modularity_score_barber=modularity_score_barber,
+            modularity_score_murata=modularity_score_murata,
+            modularity_score_1=modularity_score_1,
+            modularity_score_2=modularity_score_2,
+            adj_rand_index=adj_rand_index,
+            conductance=conductance,
+            coverage=coverage,
+            performance=performance,
+            gini=gini
+            )
+        self.results_.append(result)
+
+    # Optional overriding
+    # def get_results(self):
+    #     # Returns the community detection results (dict free format)
+    #     return self.results_
 
 ########################################################
 #### Utility
