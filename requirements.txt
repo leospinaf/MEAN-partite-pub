@@ -1,47 +1,57 @@
-awkde @ git+https://github.com/noxtoby/awkde.git@1c31e55fe54c0cad80ab423a9605fc9ddfb2614c
-brotlipy==0.7.0
-certifi==2021.5.30
-cffi @ file:///tmp/build/80754af9/cffi_1625814692085/work
-chardet @ file:///tmp/build/80754af9/chardet_1607706775000/work
-conda==4.10.3
-conda-package-handling @ file:///tmp/build/80754af9/conda-package-handling_1618262147379/work
-cryptography @ file:///tmp/build/80754af9/cryptography_1616767007030/work
+angelcommunity==2.0.0
+autograd==1.6.2
+bimlpa==0.1.2
+cdlib==0.3.0
+certifi==2023.7.22
+charset-normalizer==3.2.0
+cma==2.7.0
+condor @ git+https://git@github.com/genisott/pycondor.git@389932cfa4d1954aef7d1b725a33a6b2ef018de2
+contourpy==1.1.0
 cycler==0.11.0
-dill==0.3.4
-et-xmlfile==1.1.0
-fonttools==4.29.1
-future==0.18.2
-idna @ file:///home/linux1/recipes/ci/idna_1610986105248/work
-joblib==1.1.0
-kde-ebm @ git+https://github.com/ucl-pond/kde_ebm.git@7469ade235353c149d13f14cd4bc521e8116df24
-kiwisolver==1.3.2
-matplotlib==3.3.3
-multiprocess==0.70.12.2
-numpy==1.22.2
-openpyxl==3.0.9
-packaging==21.3
-pandas==1.4.0
-pathos==0.2.8
-Pillow==9.0.1
-pox==0.3.0
-ppft==1.6.6.4
-pybind11==2.9.1
-pycosat==0.6.3
-pycparser @ file:///tmp/build/80754af9/pycparser_1594388511720/work
+decorator==5.1.1
+demon==2.0.6
+dynetx==0.3.2
+eva-lcd==0.1.1
+fonttools==4.42.1
+future==0.18.3
+idna==3.4
+igraph==0.10.6
+importlib-resources==6.0.1
+joblib==1.3.2
+kiwisolver==1.4.5
+Levenshtein==0.21.1
+markov-clustering==0.0.6.dev0
+matplotlib==3.7.2
+moo @ git+https://github.com/leospinaf/MEAN-partite.git@636aecde82cd185c191139b60884620915ae6394
+networkx==3.1
+nf1==0.0.4
+numpy==1.25.2
+packaging==23.1
+pandas==2.0.3
+Pillow==10.0.0
+platformdirs==3.10.0
+pooch==1.7.0
+psutil==5.9.5
+PuLP==2.7.0
+pymoo==0.5.0
 pymocd==1.0.0
-pyOpenSSL @ file:///tmp/build/80754af9/pyopenssl_1608057966937/work
-pyparsing==3.0.7
-PySocks @ file:///tmp/build/80754af9/pysocks_1605305812635/work
-pySuStaIn @ file:///home/zzalsdme/ainostics/pySuStaIn
+pyparsing==3.0.9
 python-dateutil==2.8.2
-pytz==2021.3
-requests @ file:///tmp/build/80754af9/requests_1608241421344/work
-ruamel-yaml-conda @ file:///tmp/build/80754af9/ruamel_yaml_1616016711199/work
-scikit-learn==1.0.2
-scipy==1.8.0
-seaborn==0.11.2
-six @ file:///tmp/build/80754af9/six_1623709665295/work
-sklearn==0.0
-threadpoolctl==3.1.0
-tqdm @ file:///tmp/build/80754af9/tqdm_1625563689033/work
-urllib3 @ file:///tmp/build/80754af9/urllib3_1625084269274/work
+python-igraph==0.10.6
+python-Levenshtein==0.21.1
+python-louvain==0.16
+pytz==2023.3
+rapidfuzz==3.2.0
+requests==2.31.0
+scikit-learn==1.3.0
+scikit-network==0.25.0
+scipy==1.11.2
+seaborn==0.12.2
+six==1.16.0
+texttable==1.6.7
+threadpoolctl==3.2.0
+thresholdclustering==1.1
+tqdm==4.66.1
+tzdata==2023.3
+urllib3==2.0.4
+zipp==3.16.2
