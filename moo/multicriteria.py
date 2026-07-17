@@ -12,7 +12,8 @@ import igraph
 from pymoo.core.problem import ElementwiseProblem
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
-from pymoo.factory import get_sampling, get_crossover, get_mutation, get_termination
+from pymoo.operators.mutation.pm import PM
+from pymoo.termination import get_termination
 from pymoo.indicators.hv import Hypervolume
 from moo.contestant import CommunityDetector
 import sknetwork
@@ -671,7 +672,7 @@ class ComDetMultiCriteria(CommunityDetector):
         if self.params_['mutation']=='pizzuti':
             mut = PizMutation()
         if self.params_['mutation']=='int_pm':
-            mut = get_mutation("int_pm")
+            mut = PM()
         if self.params_['mutation']=='enhanced':
             mut = EnhancedMutation()
         if self.params_['mutation']=='disable':
