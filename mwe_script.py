@@ -50,34 +50,34 @@ algos = [
     #contestant.ComDetccm(), # pymocd ccm
     #contestant.ComDetkrm(), # pymocd krm
     #contestant.ComDetmmcomo(), # pymocd mmcomo
-    #ComDetMultiCriteria(  # 3D MO approach
-    #name='3d',
-    #params = {
-    #    'mode': '3d', # '2d' for 2d approach
-    #    'popsize': 50,
-    #    'termination': None, # By default it runs for 1000 generations (or pass a pymoo termination instance)
-    #    'save_history': False, # set to True for later hypervolume calculations
-    #    'seed': None, # For reproducibility
-    #    'initialization': 'original',
-    #    'mutation': '',#'enhanced',
-    #    'enhance':0,
-    #}
-#),
-#    ComDetMultiCriteria(  # 2D MO approach
- #   name='2d',
-  #  params = {
-   #     'mode': '2d', # '2d' for 2d approach
-    #    'popsize': 50,
-     #   'termination': MultiObjectiveSpaceTermination(tol=0.0001,n_last=100,nth_gen=75,n_max_gen=5000,n_max_evals=None),#None, # By default it runs for 1000 generations (or pass a pymoo termination instance)
-      #  'save_history': False, # set to True for later hypervolume calculations
-       # 'seed': None, # For reproducibility
-        #'initialization': 'original',
-        #'mutation': 'enhanced',#'enhanced',
-        #'enhance':0.2,
-        #'pair_crossover':1.0,
-        #'gene_crossover':0.1
-    #}
-#)
+    ComDetMultiCriteria(  # 3D MO approach
+    name='3d',
+    params = {
+        'mode': '3d', # '2d' for 2d approach
+        'popsize': 50,
+        'termination': None, # By default it runs for 1000 generations (or pass a pymoo termination instance)
+        'save_history': False, # set to True for later hypervolume calculations
+        'seed': None, # For reproducibility
+        'initialization': 'original',
+        'mutation': '',#'enhanced',
+        'enhance':0,
+    }
+),
+    ComDetMultiCriteria(  # 2D MO approach
+    name='2d',
+    params = {
+        'mode': '2d', # '2d' for 2d approach
+        'popsize': 50,
+        'termination': MultiObjectiveSpaceTermination(tol=0.0001,n_last=100,nth_gen=75,n_max_gen=5000,n_max_evals=None),#None, # By default it runs for 1000 generations (or pass a pymoo termination instance)
+        'save_history': False, # set to True for later hypervolume calculations
+        'seed': None, # For reproducibility
+        'initialization': 'original',
+        'mutation': 'enhanced',#'enhanced',
+        'enhance':0.2,
+        'pair_crossover':1.0,
+        'gene_crossover':0.1,
+    },
+)
 ]
 
 print('Algos defined in %f s' % (time.time()-start))

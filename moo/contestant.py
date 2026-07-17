@@ -406,10 +406,10 @@ class ComDetBiLouvain(CommunityDetector):
         #code.interact(local=locals())
         proj0_labels=list(bilouvain.labels_row_)
         proj1_labels=list(bilouvain.labels_col_)
-        graph_labels = [0]*len(ground_truth)
-        for i,lab in zip(proj0,proj0_labels):
+        graph_labels = [0]*len(self.ground_truth_)
+        for i,lab in zip(self.proj0_,proj0_labels):
             graph_labels[i] = lab
-        for i,lab in zip(proj1,proj1_labels):
+        for i,lab in zip(self.proj1_,proj1_labels):
             graph_labels[i] = lab
         
         self._add_partition(graph_labels)
