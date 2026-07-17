@@ -13,7 +13,7 @@ from pymoo.core.problem import ElementwiseProblem
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
 from pymoo.operators.mutation.pm import PM
-from pymoo.termination import get_termination
+from pymoo.termination.max_gen import MaximumGenerationTermination
 from pymoo.indicators.hv import Hypervolume
 from moo.contestant import CommunityDetector
 import sknetwork
@@ -693,7 +693,7 @@ class ComDetMultiCriteria(CommunityDetector):
     def define_termination(self):
         # Define termination here. For now, it is passed in params but can be changed in the future
         termination = self.params_['termination']
-        self.termination_ = termination if termination is not None else get_termination("n_gen", 1000)
+        self.termination_ = termination if termination is not None else MaximumGenerationTermination(1000)
         # print(self.termination_)
 
     def optimize(self):
