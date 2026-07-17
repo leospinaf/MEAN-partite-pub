@@ -747,7 +747,7 @@ class ComDetMultiCriteria(CommunityDetector):
             proj1_labels=[m[i] for i in proj1] # Community memberships for the 2nd two-mode projected graph
             #code.interact(local=locals())
             #try:
-            modularity_score_barber = sknetwork.clustering.bimodularity(badj,proj0_labels,proj1_labels)
+            modularity_score_barber = sknetwork.clustering.get_modularity(badj,proj0_labels,proj1_labels)
             #except:
             #    print('Error in badj dimensions')
             #    code.interact(local=locals())
@@ -890,8 +890,20 @@ def make_badj(graph):
     edge_list = [(e.source,e.target) for e in graph.es]  ## Extract the edges.
     edge_list = [(s,t) if vertex_type[t] else (t,s) for s,t in edge_list]  ## Order them so the bottom node is first.
     edge_list = [(vertex_map[s],vertex_map[t]) for s,t in edge_list]  ## Map them to bipartite ids.
-    badj = sknetwork.utils.edgelist2biadjacency(edge_list)  ## Make the adjacency matrix.
+    badj = edgelist_to_biadjacency(edge_list)  ## Make the adjacency matrix.
     return badj
+
+from scipy import sparse
+
+def edgelist_to_biadjacency(edges, shape=None):
+    rows = np.array([e[0] for e in edges])
+    cols = np.array([e[1] for e in edges])
+
+    if shape is None:
+        shape = (rows.max() + 1, cols.max() + 1)
+
+    data = np.ones(len(edges))
+    return sparse.csr_matrix((data, (rows, cols)), shape=shape)
 
 ########################### Some tests
 

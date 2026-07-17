@@ -11,7 +11,7 @@ import sknetwork
 import code
 import time
 from copy import deepcopy
-from pymoo.termination.ftol import MultiObjectiveSpaceTermination
+from pymoo.termination.default import DefaultMultiObjectiveTermination
 
 start = time.time()
 
@@ -68,7 +68,7 @@ algos = [
     params = {
         'mode': '2d', # '2d' for 2d approach
         'popsize': 50,
-        'termination': MultiObjectiveSpaceTermination(tol=0.0001,n_last=100,nth_gen=75,n_max_gen=5000,n_max_evals=None),#None, # By default it runs for 1000 generations (or pass a pymoo termination instance)
+        'termination': DefaultMultiObjectiveTermination(ftol=1e-4,period=100,n_max_gen=5000,n_max_evals=None),#None, # By default it runs for 1000 generations (or pass a pymoo termination instance)
         'save_history': False, # set to True for later hypervolume calculations
         'seed': None, # For reproducibility
         'initialization': 'original',
