@@ -3,11 +3,11 @@ import pandas as pd
 import igraph
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics.cluster import adjusted_rand_score
-import condor
 from moo.utils import nostdout
 import sknetwork
 import cdlib
 import moo.skbio_gini as skbio_gini
+import moo.condor as condor
 
 class CommunityDetector():
     """
@@ -94,7 +94,7 @@ class CommunityDetector():
         proj1_labels = [graph_labels[i] for i in self.proj1_]
 
         modularity_score = self.graph_.modularity(graph_labels)
-        modularity_score_barber = sknetwork.clustering.bimodularity(self.badj_,proj0_labels,proj1_labels)
+        modularity_score_barber = sknetwork.clustering.get_modularity(self.badj_,proj0_labels,proj1_labels)
         modularity_score_murata = modularity_murata(self.badj_,graph_labels)
         modularity_score_1 = self.graph_proj1_.modularity(proj0_labels,weights=self.graph_proj1_.es["weight"])
         modularity_score_2 = self.graph_proj2_.modularity(proj1_labels,weights=self.graph_proj2_.es["weight"])
@@ -254,7 +254,7 @@ class ComDetMultiLevel(CommunityDetector):
         # num_clusters = min(self.num_clusters_+ 1, len(self.graph_.vs)) # This is a different case (see below)
         for k in range(1, k1+k2):
             # Run hierarchical clustering on communities
-            clustering = AgglomerativeClustering(n_clusters=k, linkage='average', affinity='precomputed').fit(d)
+            clustering = AgglomerativeClustering(n_clusters=k, linkage='average', metric='precomputed').fit(d)
             labels = clustering.labels_
 
             newlabels = np.zeros(n_vertices)
