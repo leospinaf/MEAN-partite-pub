@@ -415,49 +415,49 @@ class ComDetBiLouvain(CommunityDetector):
         self._add_partition(graph_labels)
 
 
-#import pymocd
+import pymocd
 
-#class _PymocdCommunityDetector(CommunityDetector):
-#    """
-#    Shared implementation for the pymocd-based multi-objective community
-#    detection algorithms (ariadne, hpmocd, mocd_q, mocd_d, moga_net, ccm,
-#    krm, mmcomo). These all run a single pymocd function directly on the
-#    bipartite igraph object and then evaluate the resulting partition in
-#    exactly the same way, so subclasses only need to set `_pymocd_func` to
-#    the appropriate pymocd function.
-#    """
-#    _pymocd_func = None  # Must be set by subclasses (e.g. staticmethod(pymocd.ariadne))
-#
-#    def _detect_communities_impl(self):
-#        # Actual community detection code
-#
-#        ## Run the pymocd algorithm assigned by the subclass directly on the
-#        ## whole bipartite igraph object. pymocd's igraph ingestion uses
-#        ## vertex.index as the node id, which matches self.graph_.vs ordering
-#        ## exactly, so we can read the result straight back into a
-#        ## graph_labels list.
-#        raw_partition = self._pymocd_func(self.graph_)
-#        raw_graph_labels = [raw_partition[i] for i in range(n_vertices)]
-#
-#        ## Some pymocd algorithms assign isolated nodes the shared sentinel
-#        ## community -1, but they aren't actually connected to one another,
-#        ## so give each isolated node its own singleton community instead of
-#        ## lumping them together. The rest of this pipeline (igraph.modularity,
-#        ## list-indexed community buckets) expects contiguous non-negative
-#        ## labels starting at 0, so remap real communities first, then append
-#        ## one fresh id per isolated node.
-#        real_labels = sorted(set(raw_graph_labels) - {-1})
-#        relabel = {lab: idx for idx, lab in enumerate(real_labels)}
-#        next_id = len(real_labels)
-#        graph_labels = []
-#        for lab in raw_graph_labels:
-#            if lab == -1:
-#                graph_labels.append(next_id)
-#                next_id += 1
-#            else:
-#                graph_labels.append(relabel[lab])
-#
-#        self._add_partition(graph_labels)
+class _PymocdCommunityDetector(CommunityDetector):
+    """
+    Shared implementation for the pymocd-based multi-objective community
+    detection algorithms (ariadne, hpmocd, mocd_q, mocd_d, moga_net, ccm,
+    krm, mmcomo). These all run a single pymocd function directly on the
+    bipartite igraph object and then evaluate the resulting partition in
+    exactly the same way, so subclasses only need to set `_pymocd_func` to
+    the appropriate pymocd function.
+    """
+    _pymocd_func = None  # Must be set by subclasses (e.g. staticmethod(pymocd.ariadne))
+
+    def _detect_communities_impl(self):
+        # Actual community detection code
+
+        ## Run the pymocd algorithm assigned by the subclass directly on the
+        ## whole bipartite igraph object. pymocd's igraph ingestion uses
+        ## vertex.index as the node id, which matches self.graph_.vs ordering
+        ## exactly, so we can read the result straight back into a
+        ## graph_labels list.
+        raw_partition = self._pymocd_func(self.graph_.to_networkx())
+        raw_graph_labels = [raw_partition[i] for i in range(self.n_vertices_)]
+
+        ## Some pymocd algorithms assign isolated nodes the shared sentinel
+        ## community -1, but they aren't actually connected to one another,
+        ## so give each isolated node its own singleton community instead of
+        ## lumping them together. The rest of this pipeline (igraph.modularity,
+        ## list-indexed community buckets) expects contiguous non-negative
+        ## labels starting at 0, so remap real communities first, then append
+        ## one fresh id per isolated node.
+        real_labels = sorted(set(raw_graph_labels) - {-1})
+        relabel = {lab: idx for idx, lab in enumerate(real_labels)}
+        next_id = len(real_labels)
+        graph_labels = []
+        for lab in raw_graph_labels:
+            if lab == -1:
+                graph_labels.append(next_id)
+                next_id += 1
+            else:
+                graph_labels.append(relabel[lab])
+
+        self._add_partition(graph_labels)
 
 
 #class ComDetariadne(_PymocdCommunityDetector):
@@ -467,53 +467,53 @@ class ComDetBiLouvain(CommunityDetector):
 #        super().__init__(name, params, min_num_clusters, max_num_clusters)
 
 
-#class ComDethpmocd(_PymocdCommunityDetector):
-#    _pymocd_func = staticmethod(pymocd.hpmocd)
-#
-#    def __init__(self, name="hpmocd", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-#        super().__init__(name, params, min_num_clusters, max_num_clusters)
+class ComDethpmocd(_PymocdCommunityDetector):
+    _pymocd_func = staticmethod(pymocd.hpmocd)
+
+    def __init__(self, name="hpmocd", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters)
 
 
-#class ComDetmocd_q(_PymocdCommunityDetector):
-#    _pymocd_func = staticmethod(pymocd.mocd_q)
-#
-#    def __init__(self, name="mocd_q", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-#        super().__init__(name, params, min_num_clusters, max_num_clusters)
+class ComDetmocd_q(_PymocdCommunityDetector):
+    _pymocd_func = staticmethod(pymocd.mocd_q)
+
+    def __init__(self, name="mocd_q", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters)
 
 
-#class ComDetmocd_d(_PymocdCommunityDetector):
-#    _pymocd_func = staticmethod(pymocd.mocd_d)
-#
-#    def __init__(self, name="mocd_d", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-#        super().__init__(name, params, min_num_clusters, max_num_clusters)
+class ComDetmocd_d(_PymocdCommunityDetector):
+    _pymocd_func = staticmethod(pymocd.mocd_d)
+
+    def __init__(self, name="mocd_d", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters)
 
 
-#class ComDetmoga_net(_PymocdCommunityDetector):
-#    _pymocd_func = staticmethod(pymocd.moga_net)
-#
-#    def __init__(self, name="moga_net", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-#        super().__init__(name, params, min_num_clusters, max_num_clusters)
+class ComDetmoga_net(_PymocdCommunityDetector):
+    _pymocd_func = staticmethod(pymocd.moga_net)
+
+    def __init__(self, name="moga_net", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters)
 
 
-#class ComDetccm(_PymocdCommunityDetector):
-#    _pymocd_func = staticmethod(pymocd.ccm)
-#
-#    def __init__(self, name="ccm", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-#        super().__init__(name, params, min_num_clusters, max_num_clusters)
+class ComDetccm(_PymocdCommunityDetector):
+    _pymocd_func = staticmethod(pymocd.ccm)
+
+    def __init__(self, name="ccm", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters)
 
 
-#class ComDetkrm(_PymocdCommunityDetector):
-#    _pymocd_func = staticmethod(pymocd.krm)
-#
-#    def __init__(self, name="krm", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-#        super().__init__(name, params, min_num_clusters, max_num_clusters)
+class ComDetkrm(_PymocdCommunityDetector):
+    _pymocd_func = staticmethod(pymocd.krm)
+
+    def __init__(self, name="krm", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters)
 
 
-#class ComDetmmcomo(_PymocdCommunityDetector):
-#    _pymocd_func = staticmethod(pymocd.mmcomo)
-#
-#    def __init__(self, name="mmcomo", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-#        super().__init__(name, params, min_num_clusters, max_num_clusters)
+class ComDetmmcomo(_PymocdCommunityDetector):
+    _pymocd_func = staticmethod(pymocd.mmcomo)
+
+    def __init__(self, name="mmcomo", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters)
 
 
 ########################################################

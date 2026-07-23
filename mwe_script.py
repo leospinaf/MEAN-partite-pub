@@ -43,13 +43,13 @@ algos = [
     contestant.ComDetBRIM(), # BRIM approach
     contestant.ComDetBiLouvain(), # sknetwork bilovain
     #contestant.ComDetariadne(), # pymocd ariadne
-    #contestant.ComDethpmocd(), # pymocd hpmocd
-    #contestant.ComDetmocd_q(), # pymocd mocd_q
-    #contestant.ComDetmocd_d(), # pymocd mocd_d
-    #contestant.ComDetmoga_net(), # pymocd moga_net (Pizzuti)
-    #contestant.ComDetccm(), # pymocd ccm
-    #contestant.ComDetkrm(), # pymocd krm
-    #contestant.ComDetmmcomo(), # pymocd mmcomo
+    contestant.ComDethpmocd(), # pymocd hpmocd
+    contestant.ComDetmocd_q(), # pymocd mocd_q
+    contestant.ComDetmocd_d(), # pymocd mocd_d
+    contestant.ComDetmoga_net(), # pymocd moga_net (Pizzuti)
+    contestant.ComDetccm(), # pymocd ccm
+    contestant.ComDetkrm(), # pymocd krm
+    contestant.ComDetmmcomo(), # pymocd mmcomo
     ComDetMultiCriteria(  # 3D MO approach
     name='3d',
     params = {

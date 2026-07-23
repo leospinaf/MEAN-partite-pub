@@ -1,0 +1,11 @@
+This repository makes use of an early version of pymocd hosted on their Github, rather than any compiled version made available via pip.
+At the time of writing, this was commit a199cc3ba94b7eb8a5804973ea9832cce0f3bab8, aligned with version 5.0.0 of their API.
+
+Installation of this on Linux is relatively straightforward.
+- Ensure that rustup is available in your environment.
+- Install maturin in your Python virtual environment, we used v1.14.1.
+- Clone the pymocd repository to your machine: git clone https://github.com/oliveira-sh/pymocd/
+- Navigate to the pymocd directory and compile the project with maturin build --release
+- A compiled wheel will now be prepared in pymocd/target/wheels that is suitable for your machine. Navigate here and install it with pip.
+
+At this stage, the complete version of pymocd should be prepared. This includes a convenient API for running a range of community detection methods. We note that the ariadne method listed in their readme was not available as described during our testing.
