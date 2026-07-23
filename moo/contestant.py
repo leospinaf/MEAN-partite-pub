@@ -460,13 +460,6 @@ class _PymocdCommunityDetector(CommunityDetector):
         self._add_partition(graph_labels)
 
 
-#class ComDetariadne(_PymocdCommunityDetector):
-#    _pymocd_func = staticmethod(pymocd.ariadne)
-#
-#    def __init__(self, name="ariadne", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-#        super().__init__(name, params, min_num_clusters, max_num_clusters)
-
-
 class ComDethpmocd(_PymocdCommunityDetector):
     _pymocd_func = staticmethod(pymocd.hpmocd)
 

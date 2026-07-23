@@ -8,4 +8,4 @@ Installation of this on Linux is relatively straightforward.
 - Navigate to the pymocd directory and compile the project with maturin build --release
 - A compiled wheel will now be prepared in pymocd/target/wheels that is suitable for your machine. Navigate here and install it with pip.
 
-At this stage, the complete version of pymocd should be prepared. This includes a convenient API for running a range of community detection methods. We note that the ariadne method listed in their readme was not available as described during our testing.
+At this stage, the complete version of pymocd should be prepared. This includes a convenient API for running a range of community detection methods.
