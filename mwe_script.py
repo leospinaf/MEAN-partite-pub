@@ -12,27 +12,39 @@ import code
 import time
 from copy import deepcopy
 from pymoo.termination.default import DefaultMultiObjectiveTermination
+import os
 
 start = time.time()
 
-## Run the data loading.
-expconfig = ExpConfig(
-    L=[50,50], U=[50,50], NumEdges=200, BC=0.1, NumGraphs=1,
-    shuffle=True, filename='test_graphs_', seed=24#42
-)
+gen_graphs = False
 
-print(expconfig) # Print parameters, or access individually, e.g., expconfig.NumEdges
+if gen_graphs:
+    print('Generating new graphs')
+    ## Run the data loading.
+    expconfig = ExpConfig(
+        L=[50,50], U=[50,50], NumEdges=200, BC=0.1, NumGraphs=1,
+        shuffle=True, filename='test_graphs_', seed=24#42
+    )
 
-print('Config defined in %f s' % (time.time()-start))
-start = time.time()
+    print(expconfig) # Print parameters, or access individually, e.g., expconfig.NumEdges
 
-# Generate data following the defined experiment confguration
-expgen = DataGenerator(expconfig=expconfig) # Pass defined parameters
-print(expgen)
-datagen = expgen.generate_data() # datagen is an iterator
+    print('Config defined in %f s' % (time.time()-start))
+    start = time.time()
 
-print('Data generator constructed in %f s' % (time.time()-start))
-start = time.time()
+    # Generate data following the defined experiment confguration
+    expgen = DataGenerator(expconfig=expconfig) # Pass defined parameters
+    print(expgen)
+    datagen = expgen.generate_data() # datagen is an iterator
+
+    print('Data generator constructed in %f s' % (time.time()-start))
+    start = time.time()
+else:
+    test_folder = 'graph_tests'
+    print(f'Loading test graphs from {test_folder}')
+    # Load some known graphs for testing.
+    files = os.listdir('graph_tests')
+
+    datagen = [igraph.Graph.Read_GML(f'{test_folder}/{f}') for f in files]
 
 ## Define the algorithms.
 algos = [

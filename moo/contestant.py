@@ -88,10 +88,10 @@ class CommunityDetector():
             Dictionary containing all evaluation metrics.
         """
 
-        graph_labels = list(map(int, graph_labels))
+        graph_labels = np.array(list(map(int, graph_labels)))
 
-        proj0_labels = [graph_labels[i] for i in self.proj0_]
-        proj1_labels = [graph_labels[i] for i in self.proj1_]
+        proj0_labels = np.array([graph_labels[i] for i in self.proj0_])
+        proj1_labels = np.array([graph_labels[i] for i in self.proj1_])
 
         modularity_score = self.graph_.modularity(graph_labels)
         modularity_score_barber = sknetwork.clustering.get_modularity(self.badj_,proj0_labels,proj1_labels)

@@ -747,7 +747,7 @@ class ComDetMultiCriteria(CommunityDetector):
             proj1_labels=[m[i] for i in proj1] # Community memberships for the 2nd two-mode projected graph
             #code.interact(local=locals())
             #try:
-            modularity_score_barber = sknetwork.clustering.get_modularity(badj,proj0_labels,proj1_labels)
+            modularity_score_barber = sknetwork.clustering.get_modularity(badj,np.array(proj0_labels),np.array(proj1_labels))
             #except:
             #    print('Error in badj dimensions')
             #    code.interact(local=locals())
