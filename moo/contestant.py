@@ -502,10 +502,61 @@ class ComDetkrm(_PymocdCommunityDetector):
         super().__init__(name, params, min_num_clusters, max_num_clusters)
 
 
-class ComDetmmcomo(_PymocdCommunityDetector):
-    _pymocd_func = staticmethod(pymocd.mmcomo)
+class _PymocdFrontCommunityDetector(CommunityDetector):
+    """
+    Shared implementation for the pymocd-based multi-objective community
+    detection algorithms (ariadne, hpmocd, mocd_q, mocd_d, moga_net, ccm,
+    krm, mmcomo). These all run a single pymocd function directly on the
+    bipartite igraph object and then evaluate the resulting partition in
+    exactly the same way, so subclasses only need to set `_pymocd_func` to
+    the appropriate pymocd function.
+    """
+    _pymocd_func = None  # Must be set by subclasses (e.g. staticmethod(pymocd.ariadne))
+
+    def _detect_communities_impl(self):
+        # Actual community detection code
+
+        ## Run the pymocd algorithm assigned by the subclass directly on the
+        ## whole bipartite igraph object. pymocd's igraph ingestion uses
+        ## vertex.index as the node id, which matches self.graph_.vs ordering
+        ## exactly, so we can read the result straight back into a
+        ## graph_labels list.
+        front_partitions = self._pymocd_func(self.graph_.to_networkx())
+
+        for raw_partition in front_partitions:
+            raw_graph_labels = [raw_partition[i] for i in range(self.n_vertices_)]
+
+            ## Some pymocd algorithms assign isolated nodes the shared sentinel
+            ## community -1, but they aren't actually connected to one another,
+            ## so give each isolated node its own singleton community instead of
+            ## lumping them together. The rest of this pipeline (igraph.modularity,
+            ## list-indexed community buckets) expects contiguous non-negative
+            ## labels starting at 0, so remap real communities first, then append
+            ## one fresh id per isolated node.
+            real_labels = sorted(set(raw_graph_labels) - {-1})
+            relabel = {lab: idx for idx, lab in enumerate(real_labels)}
+            next_id = len(real_labels)
+            graph_labels = []
+            for lab in raw_graph_labels:
+                if lab == -1:
+                    graph_labels.append(next_id)
+                    next_id += 1
+                else:
+                    graph_labels.append(relabel[lab])
+
+            self._add_partition(graph_labels)
+
+
+class ComDetmmcomo(_PymocdFrontCommunityDetector):
+    _pymocd_func = staticmethod(pymocd.mmcomo_fronts)
 
     def __init__(self, name="mmcomo", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters)
+
+class ComDetscale(_PymocdFrontCommunityDetector):
+    _pymocd_func = staticmethod(pymocd.scale_fronts)
+
+    def __init__(self, name="scale", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
         super().__init__(name, params, min_num_clusters, max_num_clusters)
 
 
@@ -527,34 +578,34 @@ class ComDetSBM(CommunityDetector):
         
         ## Now we fit SBM to the graph.
         # This allows the model to choose the optimal number of clusters.
-        model_selection_sbm = ModelSelection("SBM")
-        models_sbm = model_selection_sbm.fit(A, symmetric=True)
-        proj0_labels = list(models_sbm.best.labels[:self.lower_])
-        proj1_labels = list(models_sbm.best.labels[self.lower_:])
+#        model_selection_sbm = ModelSelection("SBM")
+#        models_sbm = model_selection_sbm.fit(A, symmetric=True)
+#        proj0_labels = list(models_sbm.best.labels[:self.lower_])
+#        proj1_labels = list(models_sbm.best.labels[self.lower_:])
 
-        graph_labels = [0] * len(self.ground_truth_)
-        for i, lab in zip(self.proj0_, proj0_labels):
-            graph_labels[i] = lab
-        for i, lab in zip(self.proj1_, proj1_labels):
-            graph_labels[i] = lab
-
-        self._add_partition(graph_labels)
+#        graph_labels = [0] * len(self.ground_truth_)
+#        for i, lab in zip(self.proj0_, proj0_labels):
+#            graph_labels[i] = lab
+#        for i, lab in zip(self.proj1_, proj1_labels):
+#            graph_labels[i] = lab
+#
+        #self._add_partition(graph_labels)
 
         # This iterates over a range.
-        #for k in range(self.min_num_clusters_,self.max_num_clusters_+1):
-        #    model_sbm = SBM(k)  # pick clusters K for the combined node set
-        #    model_sbm.fit(A, symmetric=True)
+        for k in range(self.min_num_clusters_,self.max_num_clusters_+1):
+            model_sbm = SBM(k,verbosity=0)  # pick clusters K for the combined node set
+            model_sbm.fit(A, symmetric=True)
 
-        #    # Extract and tidy the labels.
-        #    proj0_labels=list(model_sbm.labels[:self.lower_])
-        #    proj1_labels=list(model_sbm.labels[self.lower_:])
-        #    graph_labels = [0]*len(self.ground_truth_)
-        #    for i,lab in zip(self.proj0_,proj0_labels):
-        #        graph_labels[i] = lab
-        #    for i,lab in zip(self.proj1_,proj1_labels):
-        #        graph_labels[i] = lab
+            # Extract and tidy the labels.
+            proj0_labels=list(model_sbm.labels[:self.lower_])
+            proj1_labels=list(model_sbm.labels[self.lower_:])
+            graph_labels = [0]*len(self.ground_truth_)
+            for i,lab in zip(self.proj0_,proj0_labels):
+                graph_labels[i] = lab
+            for i,lab in zip(self.proj1_,proj1_labels):
+                graph_labels[i] = lab
             
-        #    self._add_partition(graph_labels)
+            self._add_partition(graph_labels)
 
 class ComDetLBM(CommunityDetector):
     def __init__(self, name= "LBM", params = {}, min_num_clusters=1, max_num_clusters=30) -> None:

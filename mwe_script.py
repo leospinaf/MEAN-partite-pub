@@ -54,15 +54,15 @@ algos = [
     contestant.ComDetFastGreedy(), # FastGreedy approach
     contestant.ComDetBRIM(), # BRIM approach
     contestant.ComDetBiLouvain(), # sknetwork bilovain
-    #contestant.ComDetariadne(), # pymocd ariadne
+    contestant.ComDetscale(), # pymocd scale, using the full Pareto front
     contestant.ComDethpmocd(), # pymocd hpmocd
     contestant.ComDetmocd_q(), # pymocd mocd_q
     contestant.ComDetmocd_d(), # pymocd mocd_d
     contestant.ComDetmoga_net(), # pymocd moga_net (Pizzuti)
     contestant.ComDetccm(), # pymocd ccm
     contestant.ComDetkrm(), # pymocd krm
-    contestant.ComDetmmcomo(), # pymocd mmcomo
-    #contestant.ComDetSBM(), # sparsebm SBM
+    contestant.ComDetmmcomo(), # pymocd mmcomo, using the full Pareto front
+    contestant.ComDetSBM(), # sparsebm SBM
     #contestant.ComDetLBM(), # sparsebm LBM
     ComDetMultiCriteria(  # 3D MO approach
     name='3d',
