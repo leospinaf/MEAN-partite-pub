@@ -1,6 +1,9 @@
 cdlib==0.4.0
+maturin==1.14.1
 pandas==3.0.3
+pymocd==5.0.1
 pymoo==0.6.2
 python-igraph==1.0.0
 scikit-learn==1.9.0
 scikit-network==0.33.5
+sparsebm==1.6.7

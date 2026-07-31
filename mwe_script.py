@@ -62,6 +62,8 @@ algos = [
     contestant.ComDetccm(), # pymocd ccm
     contestant.ComDetkrm(), # pymocd krm
     contestant.ComDetmmcomo(), # pymocd mmcomo
+    #contestant.ComDetSBM(), # sparsebm SBM
+    #contestant.ComDetLBM(), # sparsebm LBM
     ComDetMultiCriteria(  # 3D MO approach
     name='3d',
     params = {

@@ -1,11 +1,64 @@
+# Note - this refers to an old version of the library, the latest version runs from pip via pymocd==5.0.1
+##############################################################################################################################################################################################################
 This repository makes use of an early version of pymocd hosted on their Github, rather than any compiled version made available via pip.
 At the time of writing, this was commit a199cc3ba94b7eb8a5804973ea9832cce0f3bab8, aligned with version 5.0.0 of their API.
 
-Installation of this on Linux is relatively straightforward.
-- Ensure that rustup is available in your environment.
-- Install maturin in your Python virtual environment, we used v1.14.1.
-- Clone the pymocd repository to your machine: git clone https://github.com/oliveira-sh/pymocd/
-- Navigate to the pymocd directory and compile the project with maturin build --release
-- A compiled wheel will now be prepared in pymocd/target/wheels that is suitable for your machine. Navigate here and install it with pip.
+## pymocd
+Repo: https://github.com/oliveira-sh/pymocd
+Not on PyPI (or: not installed via requirements.txt) — requires a Rust build toolchain and compiles to a wheel via maturin.
 
-At this stage, the complete version of pymocd should be prepared. This includes a convenient API for running a range of community detection methods.
+1. System dependencies (Linux):
+   Install rustup (the Rust toolchain installer):
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   Follow the on-screen prompts (default option is fine), then either
+   restart your shell or run:
+   source "$HOME/.cargo/env"
+   to pick up rustup/cargo on PATH.
+
+2. Install maturin in your Python virtual environment:
+   pip install maturin
+   (we used v1.14.1)
+
+3. Clone the repository:
+   git clone https://github.com/oliveira-sh/pymocd/
+   cd pymocd
+
+4. Compile the project:
+   maturin build --release
+
+5. Install the compiled wheel:
+   A wheel will be prepared in pymocd/target/wheels/ — navigate there
+   and install it with pip:
+   pip install target/wheels/<wheel_filename>.whl
+
+Note: produces a compiled wheel specific to this machine/OS —
+if used in CI or Docker, this build step must be re-run there,
+not cached from a dev machine.
+
+Once installed, pymocd provides a convenient API for running a range
+of community detection methods.
+
+
+Installing bipartiteSBM
+This repository also uses bipartiteSBM, a Python wrapper of some underlying C++ libraries for fast optimisation of a stochastic block model. Installation of this on Linux is similar to the steps for pymocd.
+Repo: https://github.com/junipertcy/bipartiteSBM
+Not on PyPI — requires cloning with submodules and compiling C++ engines.
+
+1. System dependencies (Linux), ensure that Boost is available for construction:
+   sudo apt install cmake libboost-all-dev
+   (Fedora: sudo dnf install cmake boost-devel)
+
+2. Clone with submodules:
+   git clone https://github.com/junipertcy/bipartiteSBM.git --recursive
+   cd bipartiteSBM
+   git submodule update
+
+3. Compile engines:
+   sh scripts/compile_engines.sh
+
+4. Python deps (separate from this project's requirements.txt):
+   python -m pip install -r requirements.txt
+
+Note: produces compiled binaries specific to this machine/OS —
+if used in CI or Docker, this build step must be re-run there,
+not cached from a dev machine.

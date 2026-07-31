@@ -509,6 +509,103 @@ class ComDetmmcomo(_PymocdCommunityDetector):
         super().__init__(name, params, min_num_clusters, max_num_clusters)
 
 
+from sparsebm import SBM,LBM
+from sparsebm import ModelSelection  ## Can use this if we want the model to determine the number of clusters.
+class ComDetSBM(CommunityDetector):
+    def __init__(self, name= "SBM", params = {}, min_num_clusters=1, max_num_clusters=30) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters)
+
+    def _detect_communities_impl(self):
+        # Actual community detection code
+        badj = make_badj(self.graph_)
+        
+        ## Make the block adjacency that SBM needs.
+        A = sparse.bmat(
+            [[None, badj], [badj.T, None]],
+            format="csr",
+        )
+        
+        ## Now we fit SBM to the graph.
+        # This allows the model to choose the optimal number of clusters.
+        model_selection_sbm = ModelSelection("SBM")
+        models_sbm = model_selection_sbm.fit(A, symmetric=True)
+        proj0_labels = list(models_sbm.best.labels[:self.lower_])
+        proj1_labels = list(models_sbm.best.labels[self.lower_:])
+
+        graph_labels = [0] * len(self.ground_truth_)
+        for i, lab in zip(self.proj0_, proj0_labels):
+            graph_labels[i] = lab
+        for i, lab in zip(self.proj1_, proj1_labels):
+            graph_labels[i] = lab
+
+        self._add_partition(graph_labels)
+
+        # This iterates over a range.
+        #for k in range(self.min_num_clusters_,self.max_num_clusters_+1):
+        #    model_sbm = SBM(k)  # pick clusters K for the combined node set
+        #    model_sbm.fit(A, symmetric=True)
+
+        #    # Extract and tidy the labels.
+        #    proj0_labels=list(model_sbm.labels[:self.lower_])
+        #    proj1_labels=list(model_sbm.labels[self.lower_:])
+        #    graph_labels = [0]*len(self.ground_truth_)
+        #    for i,lab in zip(self.proj0_,proj0_labels):
+        #        graph_labels[i] = lab
+        #    for i,lab in zip(self.proj1_,proj1_labels):
+        #        graph_labels[i] = lab
+            
+        #    self._add_partition(graph_labels)
+
+class ComDetLBM(CommunityDetector):
+    def __init__(self, name= "LBM", params = {}, min_num_clusters=1, max_num_clusters=30) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters)
+
+    def _detect_communities_impl(self):
+        # Actual community detection code
+        badj = make_badj(self.graph_)
+
+        # Let the model choose the optimal number of clusters.
+        model_selection_lbm = ModelSelection("LBM")
+        models_lbm = model_selection_lbm.fit(badj)
+
+        proj0_labels = list(models_lbm.best.row_labels)
+        proj1_labels = list(models_lbm.best.column_labels)
+
+        # infer ka from the automatically-selected model, for the offset
+        ka = len(set(proj0_labels))
+
+        graph_labels = [0] * len(self.ground_truth_)
+        for i, lab in zip(self.proj0_, proj0_labels):
+            graph_labels[i] = lab
+        for i, lab in zip(self.proj1_, proj1_labels):
+            graph_labels[i] = lab + ka
+
+        self._add_partition(graph_labels)
+
+        # Iterate over combinations of k.
+        #for ka in range(self.min_num_clusters_, self.max_num_clusters_ + 1):
+        #    for kb in range(self.min_num_clusters_, self.max_num_clusters_ + 1):
+        #        model_lbm = LBM(
+        #            n_row_clusters=ka,
+        #            n_column_clusters=kb,
+        #            n_init_total_run=5,
+        #        )
+        #        model_lbm.fit(badj)
+
+        #        # Extract labels directly — already aligned to proj0/proj1 order,
+        #        # since make_badj built badj's rows/columns in that same order.
+        #        proj0_labels = list(model_lbm.row_labels)
+        #        proj1_labels = list(model_lbm.column_labels)
+
+        #        graph_labels = [0] * len(self.ground_truth_)
+        #        for i, lab in zip(self.proj0_, proj0_labels):
+        #            graph_labels[i] = lab
+        #        for i, lab in zip(self.proj1_, proj1_labels):
+        #            graph_labels[i] = lab + ka   # offset so row/column labels don't collide
+
+        #        self._add_partition(graph_labels)
+
+
 ########################################################
 #### Utility
 ########################################################
