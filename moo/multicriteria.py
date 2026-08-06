@@ -220,7 +220,7 @@ class MultiCriteriaProblem(ElementwiseProblem):
         if self.mode_=="3d":
             self.n_obj_ = 3  
         if self.mode_=="4d": 
-            self.n_obj = 4  # Number of objectives
+            self.n_obj_ = 4  # Number of objectives
         
         self.n_constr_ = 0 # Number of constraints (no constraints)
         self.xl_ = np.zeros(self.n_var_) # Lower bound for design variables (0)
