@@ -99,6 +99,13 @@ class CommunityDetector():
         modularity_score_1 = self.graph_proj1_.modularity(proj0_labels,weights=self.graph_proj1_.es["weight"])
         modularity_score_2 = self.graph_proj2_.modularity(proj1_labels,weights=self.graph_proj2_.es["weight"])
         adj_rand_index = adjusted_rand_score(self.ground_truth_,graph_labels)
+
+        # Make the ground truth and labels for upper/lower separately for independent ARI calculations.
+        proj0_ground_truth = [self.ground_truth_[i] for i in self.proj0_]
+        proj1_ground_truth = [self.ground_truth_[i] for i in self.proj1_]
+        proj0_ari = adjusted_rand_score(proj0_ground_truth,proj0_labels)
+        proj1_ari = adjusted_rand_score(proj1_ground_truth,proj1_labels)
+
         communities = self._labels_to_communities(graph_labels)
         clust = cdlib.NodeClustering(communities,graph=None,method_name=self.name_)
         conductance = cdlib.evaluation.conductance(self.graph_,clust).score
@@ -116,6 +123,8 @@ class CommunityDetector():
             modularity_score_1=modularity_score_1,
             modularity_score_2=modularity_score_2,
             adj_rand_index=adj_rand_index,
+            proj0_ari=proj0_ari,
+            proj1_ari=proj1_ari,
             conductance=conductance,
             coverage=coverage,
             performance=performance,

@@ -79,7 +79,7 @@ class DataGenerator():
         off_comms = {i:[j for j in range(n_top_comms) if j != i] for i in range(n_bottom_comms)}
 
         for it in range(self.expconfig.NumGraphs):
-            ## Sample the top nodes for each edge.
+            ## Sample the bottom nodes for each edge.
             source_nodes = rng.choice(n_bottom,size=self.expconfig.NumEdges)
 
             ## Calculate the probability to determine the community of the bottom node for each edge.

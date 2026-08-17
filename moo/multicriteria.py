@@ -744,6 +744,12 @@ class ComDetMultiCriteria(CommunityDetector):
             m = c.membership
             modularity_score = self.problem_.graph_.modularity(m)
             adj_rand_index = adjusted_rand_score(groundtruth,m)
+
+            # Make the ground truth and labels for upper/lower separately for independent ARI calculations.
+            proj0_ground_truth = [groundtruth[i] for i in self.proj0_]
+            proj1_ground_truth = [groundtruth[i] for i in self.proj1_]
+            proj0_ari = adjusted_rand_score(proj0_ground_truth,proj0_labels)
+            proj1_ari = adjusted_rand_score(proj1_ground_truth,proj1_labels)
             
             proj0_labels=[m[i] for i in proj0] # Community memberships for the 1st two-mode projected graph
             proj1_labels=[m[i] for i in proj1] # Community memberships for the 2nd two-mode projected graph
@@ -771,7 +777,7 @@ class ComDetMultiCriteria(CommunityDetector):
             result = (
                 self.name_,
                  len(c), modularity_score, modularity_score_1,
-                modularity_score_2, adj_rand_index, modularity_score_barber,
+                modularity_score_2, adj_rand_index, proj0_ari, proj1_ari, modularity_score_barber,
                 conductance, coverage, performance, gini, modularity_score_murata
             )
 
