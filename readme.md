@@ -18,6 +18,8 @@ The synthetic data generation processes uses a number of parameters to control p
 - `shuffle`: Boolean for shuffling nodes labels to remove relationship between node label and community label. Defaults to `True`.
 - `filename`: provide a custom filename structure to be used alongside graph number by generator. Defaults to the empty string, returning filenames `_0.gml`, `_1.gml` etc.
 - `seed`: define a random seed for reproducibility. Defaults to `42`.
+- `ProbArray`: A community preference array for the lower communities to upper communities. This should be a list of lists where each inner list is a true probability vectors e.g. `[[0.8,0.2],[0.2,0.8]]`
+- `HighGT`: A mapping from the lower level communities to the higher level communities in the hierarchical model. This should be a list of lists of labels for each community in each mode.
 
 The community detection process uses a number of parameters to change the optimization process. Parameter defaults and options are explained below.
 - `name`: provide an informative string to differentiate different sets of initialization parameters. Defaults to `multicriteria`.

@@ -135,7 +135,7 @@ class DataGenerator():
                 ## Write g to file.
                 if filename:
                     try:
-                        g.write_gml(filename+'_%d.gml' % it)
+                        g_i_new.write_gml(filename+'_%d.gml' % it)
                     except FileNotFoundError:
                         print('ERROR: You need to create the specified directory.')
                         raise FileNotFoundError
@@ -231,6 +231,260 @@ class DataGenerator():
                 yield g#, vT, groundtruth,
 
 
+class HierarchicalConfig():
+    '''
+    This class defines the configuration parameters required
+    to generate the dataset (graphs) for community detection 
+    '''
+    def __init__(
+        self, L=[40,60,40,60], U=[40,60,40,60], NumEdges=400, ProbArray = np.array([[0.7,0.2,0.05,0.05],[0.2,0.7,0.05,0.05],[0.05,0.05,0.7,0.2],[0.05,0.05,0.2,0.7]]),
+        HighGT = [[1,1,2,2],[1,1,2,2]], NumGraphs=30, shuffle=True, seed=None, filename=''):
+        
+        assert len(L) == len(U), 'This generator only supports the same number of communities in each mode'
+        assert ProbArray.shape[1] == len(U), 'The probability array does not match the number of upper communities'
+        assert len(set([len(g) for g in HighGT])) == 1, 'The hierarchical ground truth does not match the number of upper communities'
+        assert len(HighGT) == 2, 'The hierarchical ground truth does not match a bipartite structure'
+        assert len(HighGT[0]) == len(L), 'The hierarchical ground truth for the lower nodes does not match the base community number'
+        assert len(HighGT[1]) == len(U), 'The hierarchical ground truth for the upper nodes does not match the base community number'
+        
+        self.L = L # L vertices (lower graph part)
+        self.U = U # U vertices (upper graph part)
+        self.NumEdges=NumEdges
+        self.HighGT = HighGT
+        
+        self.probs = ProbArray  # Array of probability vectors for each community in L, mapping to U.
+        self.NumGraphs = NumGraphs # Number of graphs to generate for this experiment
+
+        self.NumNodes = sum(L)+sum(U) # Number of graph nodes
+        self.Vertices = [0] * sum(self.L) + [1] * sum(self.U)
+        self.shuffle=shuffle
+        self.seed = 42 if seed is None else seed
+        self.filename=filename
+        
+        ## Add a warning around the number of edges.
+        max_in_comm_edges = sum([s*t for s,t in zip(L,U)])
+        if NumEdges > max_in_comm_edges: print('The parameters specify more edges than the maximum within communities. Between community edge probability will be affected.')
+    
+    def __str__(self) -> str:
+        return f'<HierConfig: filename={self.filename}, L={self.L}, U={self.U}, NumNodes={self.NumNodes}, NumEdges={self.NumEdges}, ProbArray={self.probs}, NumGraphs={self.NumGraphs}, shuffle={self.shuffle}, seed={self.seed}>'
+
+
+class HierarchicalGenerator():
+    def __init__(self, expconfig=None):
+        self.expconfig = HierarchicalConfig() if expconfig is None else expconfig
+    
+    def __str__(self) -> str:
+        return f'<HierGenerator: {self.expconfig.__str__()[1:-1]}>'
+
+    def generate_data(self):
+        rng = np.random.default_rng(seed=self.expconfig.seed)
+        shuffle = self.expconfig.shuffle
+        
+        L = self.expconfig.L
+        U = self.expconfig.U
+        HighGT = self.expconfig.HighGT
+        self.probs = self.expconfig.probs
+        filename = self.expconfig.filename
+        vertices = self.expconfig.Vertices
+        
+        ## Make some useful calculations to save time.
+        n_top = sum(U)
+        n_bottom = sum(L)
+        n_top_comms = len(U)
+        n_bottom_comms = len(L)
+
+        # Convert the probability array to a series of vectors, one element for each node.
+        probs = np.zeros((len(L),n_top))  ## Rows = bottom comms, cols = top nodes.
+        for i in range(len(L)):
+            j = 0
+            for ind,u in enumerate(U):
+                for _ in range(u):
+                    probs[i,j] = self.probs[i,ind]/u  # Each node's probability is equivalent to the equal sample from the community probability.
+                    j += 1
+
+        assert np.abs(np.sum(probs) - probs.shape[0]) < 1e-6, "The probability array is malformed. Check the probabilities you provide are correct."
+
+        i = 0
+        comm_labels = {}  ## This dict will give node id: community label with numbering sequentially across both modes, starting from 0.
+        ## That is, the first node in the bottom set has id n_top and the first bottom community has id len(community_prefs[0]).
+        for m in (L,U):
+            for j,c in enumerate(m):
+                for n in range(c):
+                    comm_labels[i] = j
+                    i += 1
+        
+        # Do the same for the higher-order ground truth labels.
+        higher_comm_labels = {}
+        i=0
+        for m,h in zip((L,U),HighGT):
+            for j,c in enumerate(m):
+                for n in range(c):
+                    higher_comm_labels[i] = h[j]
+                    i += 1
+
+        ## Reverse this dict to get a list of bottom node ids within each community label.
+        comm_nodes = {}
+        for k in comm_labels:
+            if k >= n_bottom:  ## We only care about mapping the top nodes.
+                if comm_nodes.get(comm_labels[k]):
+                    comm_nodes[comm_labels[k]].append(k)
+                else:
+                    comm_nodes[comm_labels[k]] = [k]
+
+        for it in range(self.expconfig.NumGraphs):
+            ## Sample the bottom nodes for each edge.
+            source_nodes = rng.choice(n_bottom,size=self.expconfig.NumEdges)
+
+            ## Sample a target node for each source node based on the probability arrays for the community.
+            top_nodes = [n_bottom + i for i in range(n_top)]
+            source_comms = [comm_labels[n] for n in source_nodes]
+            target_nodes = [rng.choice(top_nodes,size=1,p=probs[s])[0] for s in source_comms]
+
+            edges = list(zip(source_nodes,target_nodes))
+
+            ## Resample any duplicate edges.
+            while len(edges) != len(set(edges)):
+                #print('resampling duplicate edges, %d to go' % (len(edges)-len(set(edges))))
+                edges = list(set(edges))
+                ## We have a duplicate edge, resample it.
+                sn = rng.choice(n_bottom,size=self.expconfig.NumEdges-len(edges))
+                cp = [comm_labels[n] for n in sn]
+                tn = [rng.choice(top_nodes,size=1,p=probs[s])[0] for s in cp]
+                edges += list(zip(sn,tn))
+        
+            # Specify original ground truth
+            groundtruth=[comm_labels[i] for i in range(sum(U)+sum(L))]
+            higher_groundtruth=[higher_comm_labels[i] for i in range(sum(U)+sum(L))]
+            # shapes = ["rectangle"] * int(L*ML) + ["circle"] * int(L*(1-ML)) + ["rectangle"] * int(U*MU) + ["circle"] * int(U*(1-MU))
+
+            # Reduce to giant component
+            g_i = igraph.Graph.Bipartite(vertices, edges)
+        
+            index_max = np.argmax(g_i.components().sizes()) # Get the largest graph component
+            # print(g_i.components().sizes())
+            
+            if not shuffle:
+                T = [groundtruth[i] for i in g_i.clusters()[index_max]]
+                HT = [higher_groundtruth[i] for i in g_i.clusters()[index_max]]
+                vT = [vertices[i] for i in g_i.clusters()[index_max]]
+                g_new=g_i.clusters().giant()
+                groundtruth=T
+            
+                # Create actual bipartite instance
+                g_i_new = igraph.Graph.Bipartite(vT,g_new.get_edgelist())
+
+                # Setting attributes
+                g_i_new.vs['VX'] = vT # Vertices
+                g_i_new.vs['name'] = vT # Vertices
+                g_i_new.vs['GT'] = groundtruth # Ground truth
+                g_i_new.vs['HGT'] = HT # Higher ground truth
+                print(g_i_new.vs.attributes())
+                
+                ## Print gc stats for g_i_new.
+                print('Graph giant component has %d/%d nodes and %d/%d edges and %d/%d communities.' % (len(g_i_new.vs),len(vertices),len(g_i_new.es),self.expconfig.NumEdges,len(set(g_i_new.vs['GT'])),len(self.expconfig.L)))
+
+                ## Write g to file.
+                if filename:
+                    try:
+                        g_i_new.write_gml(filename+'_%d.gml' % it)
+                    except FileNotFoundError:
+                        print('ERROR: You need to create the specified directory.')
+                        raise FileNotFoundError
+                yield g_i_new #, vT, groundtruth,
+            else:
+                #T = [groundtruth[i] for i in g_i.clusters()[index_max]]
+                #vT = [vertices[i] for i in g_i.clusters()[index_max]]
+                #g=g_i.clusters().giant()
+                #print(g)
+            
+                oldelist = g_i.get_edgelist()
+                oldorder= g_i.clusters()[index_max]#list(range(0,len(T)))
+                order=oldorder.copy()
+                #print(order)
+                rng.shuffle(order)
+                # random.shuffle(order)
+                #print(groundtruth)
+                #print(vT)
+            #    print(oldelist)
+                #
+                #print(oldorder)
+                #print(order)
+                selected = g_i.clusters()[index_max]
+                
+                elist=[]
+                
+                # Create reduced edge list
+                for i in range(0,len(oldelist)):
+                    try :
+                        # Retrieve old idnex
+                        ti1 = oldorder.index(oldelist[i][0])
+                        ti2 = oldorder.index(oldelist[i][1])
+                        # Map vertices to new ids
+                        i1 = order.index(oldelist[i][0])
+                        i2 = order.index(oldelist[i][1])
+                        elist.append([i1,i2])
+                        #print(ti1,ti2)
+                        #print(i1,i2)
+                
+                    except ValueError :
+                        res = "Element not in list !"
+                        # print(res)
+                        
+
+                    # print(elist[i])
+                        #print(i1,i2)
+                #    print(elist) 
+                    
+                # print(order)
+                # print(len(elist))
+                # print(len(oldelist))
+                # print(T)
+                # print(vT)
+
+                labels = [groundtruth[i] for i in order]
+                higher_labels = [higher_groundtruth[i] for i in order]
+                topbottom = [vertices[i] for i in order]
+            #    print(topbottom)
+                #print(labels)
+                #print(topbottom)
+                #print(groundtruth)
+                #print(vT)
+                #print(len(oldelist))
+                #print(len(elist))
+                
+                # Create actual bipartite instance
+                g = igraph.Graph.Bipartite(topbottom,elist)
+                #g_i = Graph.Bipartite(vT,g.get_edgelist())
+
+                # # Store instance and associated ground truth
+                # g.write_edgelist(path+"Graph"+str(it)+".dat")
+                # p = pd.DataFrame(labels)
+                # p.to_csv(path+"Graph"+str(it)+".truth.dat", sep=',',header=None)
+                # p = pd.DataFrame(topbottom)
+                # p.to_csv(path+"Graph"+str(it)+".vertices.dat", sep=',',header=None)
+
+                # Setting attributes
+                g.vs['VX'] = topbottom # Vertices
+                g.vs['name'] = topbottom # Vertices
+                g.vs['GT'] = labels # Ground truth
+                g.vs['HGT'] = higher_labels # Higher ground truth
+                print(g.vs.attributes())
+                #code.interact(local=locals())
+
+                ## Print gc stats for g_i_new.
+                print('Graph giant component has %d/%d nodes and %d/%d edges and %d/%d communities.' % (len(g.vs),len(vertices),len(g.es),self.expconfig.NumEdges,len(set(g.vs['GT'])),len(self.expconfig.L)))
+
+                ## Write g to file.
+                if filename:
+                    try:
+                        g.write_gml(filename+'_%d.gml' % it)
+                    except FileNotFoundError:
+                        print('ERROR: You need to create the specified directory.')
+                        exit()
+
+                yield g#, vT, groundtruth,
+
+
 def graphs_equal(g1, g2, attribs):
     """
     Checks the equality of two graphs
@@ -293,6 +547,10 @@ def test_datagen_reproducibility(num_tests=1, attribs=['VX', 'GT']):
         else:
             print(f"\t\tAll Graphs are equal")
 
+import code
+
 if __name__ == "__main__":
     # test_create_datagen()
-    test_datagen_reproducibility(num_tests=30, attribs=['VX', 'GT'])
+    #test_datagen_reproducibility(num_tests=30, attribs=['VX', 'GT'])
+
+    code.interact(local=locals())
