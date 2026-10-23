@@ -232,6 +232,10 @@ class MultiCriteriaProblem(ElementwiseProblem):
 
         self.vertices_ = graph.vs['VX']
         self.groundtruth_ = graph.vs['GT']
+        if 'HGT' in self.graph_.vs.attributes():
+            self.higher_ground_truth_ = self.graph_.vs['HGT']
+        else:
+            self.higher_ground_truth_ = None
         self.proj0_ = [i for i,val in enumerate(self.vertices_) if val==0] # Vertex indices (1st mode)
         self.proj1_ = [i for i,val in enumerate(self.vertices_) if val==1] # Vertex indices (2nd mode)
         
@@ -716,6 +720,7 @@ class ComDetMultiCriteria(CommunityDetector):
         n_var = self.problem_.n_var_
         vertices = self.problem_.vertices_
         groundtruth = self.problem_.groundtruth_
+        higher_ground_truth = self.problem_.higher_ground_truth_
         adj_list = self.problem_.adj_list_
         proj0 = self.problem_.proj0_
         proj1 = self.problem_.proj1_
@@ -744,12 +749,25 @@ class ComDetMultiCriteria(CommunityDetector):
             m = c.membership
             modularity_score = self.problem_.graph_.modularity(m)
             adj_rand_index = adjusted_rand_score(groundtruth,m)
+            if higher_ground_truth:
+                higher_adj_rand_index = adjusted_rand_score(higher_ground_truth,m)
+            else:
+                higher_adj_rand_index = np.nan
 
             # Make the ground truth and labels for upper/lower separately for independent ARI calculations.
             proj0_ground_truth = [groundtruth[i] for i in self.proj0_]
             proj1_ground_truth = [groundtruth[i] for i in self.proj1_]
             proj0_ari = adjusted_rand_score(proj0_ground_truth,proj0_labels)
             proj1_ari = adjusted_rand_score(proj1_ground_truth,proj1_labels)
+
+            if higher_ground_truth:
+                proj0_higher_ground_truth = [higher_ground_truth[i] for i in self.proj0_]
+                proj1_higher_ground_truth = [higher_ground_truth[i] for i in self.proj1_]
+                proj0_higher_ari = adjusted_rand_score(proj0_higher_ground_truth,proj0_labels)
+                proj1_higher_ari = adjusted_rand_score(proj1_higher_ground_truth,proj1_labels)
+            else:
+                proj0_higher_ari = np.nan
+                proj1_higher_ari = np.nan
             
             proj0_labels=[m[i] for i in proj0] # Community memberships for the 1st two-mode projected graph
             proj1_labels=[m[i] for i in proj1] # Community memberships for the 2nd two-mode projected graph
@@ -778,7 +796,7 @@ class ComDetMultiCriteria(CommunityDetector):
                 self.name_,
                  len(c), modularity_score, modularity_score_1,
                 modularity_score_2, adj_rand_index, proj0_ari, proj1_ari, modularity_score_barber,
-                conductance, coverage, performance, gini, modularity_score_murata
+                conductance, coverage, performance, gini, modularity_score_murata, higher_adj_rand_index, proj0_higher_ari, proj1_higher_ari
             )
 
             temp_results.append(result)
@@ -787,7 +805,7 @@ class ComDetMultiCriteria(CommunityDetector):
         results_set = set(temp_results)
         # Building result dicts
         cols = ['name', 'num_clusters', 'modularity_score', 'modularity_score_1', 'modularity_score_2', 'adj_rand_index', 'modularity_score_barber',
-                'conductance', 'coverage', 'performance', 'gini', 'modularity_score_murata']
+                'conductance', 'coverage', 'performance', 'gini', 'modularity_score_murata', 'higher_adj_rand_index', 'proj0_higher_ari', 'proj1_higher_ari']
         self.results_ = [{k:v for k,v in zip(cols, value)} for value in results_set]
 
     def compute_hypervolume(self):

@@ -56,6 +56,10 @@ class CommunityDetector():
         self.upper_ = self.vertices_.count(1)
         self.n_vertices_ = len(self.graph_.vs)
         self.ground_truth_ = self.graph_.vs['GT']
+        if 'HGT' in self.graph_.vs.attributes():
+            self.higher_ground_truth_ = self.graph_.vs['HGT']
+        else:
+            self.higher_ground_truth_ = None
         self.proj0_ = [i for i, val in enumerate(self.vertices_) if val == 0]
         self.proj1_ = [i for i, val in enumerate(self.vertices_) if val == 1]
         self.graph_proj1_, self.graph_proj2_ = self.graph_.bipartite_projection(multiplicity=True)
@@ -99,12 +103,25 @@ class CommunityDetector():
         modularity_score_1 = self.graph_proj1_.modularity(proj0_labels,weights=self.graph_proj1_.es["weight"])
         modularity_score_2 = self.graph_proj2_.modularity(proj1_labels,weights=self.graph_proj2_.es["weight"])
         adj_rand_index = adjusted_rand_score(self.ground_truth_,graph_labels)
+        if self.higher_ground_truth_:
+            higher_adj_rand_index = adjusted_rand_score(self.higher_ground_truth_,graph_labels)
+        else:
+            higher_adj_rand_index = np.nan
 
         # Make the ground truth and labels for upper/lower separately for independent ARI calculations.
         proj0_ground_truth = [self.ground_truth_[i] for i in self.proj0_]
         proj1_ground_truth = [self.ground_truth_[i] for i in self.proj1_]
         proj0_ari = adjusted_rand_score(proj0_ground_truth,proj0_labels)
         proj1_ari = adjusted_rand_score(proj1_ground_truth,proj1_labels)
+
+        if self.higher_ground_truth_:
+            proj0_higher_ground_truth = [self.higher_ground_truth_[i] for i in self.proj0_]
+            proj1_higher_ground_truth = [self.higher_ground_truth_[i] for i in self.proj1_]
+            proj0_higher_ari = adjusted_rand_score(proj0_higher_ground_truth,proj0_labels)
+            proj1_higher_ari = adjusted_rand_score(proj1_higher_ground_truth,proj1_labels)
+        else:
+            proj0_higher_ari = np.nan
+            proj1_higher_ari = np.nan
 
         communities = self._labels_to_communities(graph_labels)
         clust = cdlib.NodeClustering(communities,graph=None,method_name=self.name_)
@@ -123,8 +140,11 @@ class CommunityDetector():
             modularity_score_1=modularity_score_1,
             modularity_score_2=modularity_score_2,
             adj_rand_index=adj_rand_index,
+            higher_adj_rand_index=higher_adj_rand_index,
             proj0_ari=proj0_ari,
             proj1_ari=proj1_ari,
+            proj0_higher_ari=proj0_higher_ari,
+            proj1_higher_ari=proj1_higher_ari,
             conductance=conductance,
             coverage=coverage,
             performance=performance,
