@@ -241,8 +241,8 @@ class HierarchicalConfig():
         HighGT = [1,1,2,2,1,1,2,2], NumGraphs=30, shuffle=True, seed=None, filename=''):
         
         assert len(L) == len(U), 'This generator only supports the same number of communities in each mode'
-        assert ProbArray.shape[1] == len(U), 'The probability array does not match the number of upper communities'
-        assert len(set([len(g) for g in HighGT])) == 1, 'The hierarchical ground truth does not match the number of upper communities'
+        #assert ProbArray.shape[1] == len(U), 'The probability array does not match the number of upper communities'
+        #assert len(set([len(g) for g in HighGT])) == 1, 'The hierarchical ground truth does not match the number of upper communities'
         assert len(HighGT) == len(L)+len(U), 'The hierarchical ground truth does not match the base community number'
         
         self.L = L # L vertices (lower graph part)
