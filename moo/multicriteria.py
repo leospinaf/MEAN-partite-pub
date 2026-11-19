@@ -754,6 +754,9 @@ class ComDetMultiCriteria(CommunityDetector):
             else:
                 higher_adj_rand_index = np.nan
 
+            proj0_labels=[m[i] for i in proj0] # Community memberships for the 1st two-mode projected graph
+            proj1_labels=[m[i] for i in proj1] # Community memberships for the 2nd two-mode projected graph
+
             # Make the ground truth and labels for upper/lower separately for independent ARI calculations.
             proj0_ground_truth = [groundtruth[i] for i in self.problem_.proj0_]
             proj1_ground_truth = [groundtruth[i] for i in self.problem_.proj1_]
@@ -769,8 +772,6 @@ class ComDetMultiCriteria(CommunityDetector):
                 proj0_higher_ari = np.nan
                 proj1_higher_ari = np.nan
             
-            proj0_labels=[m[i] for i in proj0] # Community memberships for the 1st two-mode projected graph
-            proj1_labels=[m[i] for i in proj1] # Community memberships for the 2nd two-mode projected graph
             #code.interact(local=locals())
             #try:
             modularity_score_barber = sknetwork.clustering.get_modularity(badj,np.array(proj0_labels),np.array(proj1_labels))
