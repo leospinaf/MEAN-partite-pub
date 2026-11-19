@@ -243,9 +243,8 @@ class HierarchicalConfig():
         assert len(L) == len(U), 'This generator only supports the same number of communities in each mode'
         assert ProbArray.shape[1] == len(U), 'The probability array does not match the number of upper communities'
         assert len(set([len(g) for g in HighGT])) == 1, 'The hierarchical ground truth does not match the number of upper communities'
-        assert len(HighGT) == 2, 'The hierarchical ground truth does not match a bipartite structure'
-        assert len(HighGT[0]) == len(L), 'The hierarchical ground truth for the lower nodes does not match the base community number'
-        assert len(HighGT[1]) == len(U), 'The hierarchical ground truth for the upper nodes does not match the base community number'
+        assert len(HighLowerGT[0]) == len(L), 'The hierarchical ground truth for the lower nodes does not match the base community number'
+        assert len(HighUpperGT[1]) == len(U), 'The hierarchical ground truth for the upper nodes does not match the base community number'
         
         self.L = L # L vertices (lower graph part)
         self.U = U # U vertices (upper graph part)
