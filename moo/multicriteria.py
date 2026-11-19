@@ -755,14 +755,14 @@ class ComDetMultiCriteria(CommunityDetector):
                 higher_adj_rand_index = np.nan
 
             # Make the ground truth and labels for upper/lower separately for independent ARI calculations.
-            proj0_ground_truth = [groundtruth[i] for i in self.proj0_]
-            proj1_ground_truth = [groundtruth[i] for i in self.proj1_]
+            proj0_ground_truth = [groundtruth[i] for i in self.problem.proj0_]
+            proj1_ground_truth = [groundtruth[i] for i in self.problem.proj1_]
             proj0_ari = adjusted_rand_score(proj0_ground_truth,proj0_labels)
             proj1_ari = adjusted_rand_score(proj1_ground_truth,proj1_labels)
 
             if higher_ground_truth:
-                proj0_higher_ground_truth = [higher_ground_truth[i] for i in self.proj0_]
-                proj1_higher_ground_truth = [higher_ground_truth[i] for i in self.proj1_]
+                proj0_higher_ground_truth = [higher_ground_truth[i] for i in self.problem.proj0_]
+                proj1_higher_ground_truth = [higher_ground_truth[i] for i in self.problem.proj1_]
                 proj0_higher_ari = adjusted_rand_score(proj0_higher_ground_truth,proj0_labels)
                 proj1_higher_ari = adjusted_rand_score(proj1_higher_ground_truth,proj1_labels)
             else:
