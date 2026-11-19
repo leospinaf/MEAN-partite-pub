@@ -238,7 +238,7 @@ class HierarchicalConfig():
     '''
     def __init__(
         self, L=[40,60,40,60], U=[40,60,40,60], NumEdges=400, ProbArray = np.array([[0.7,0.2,0.05,0.05],[0.2,0.7,0.05,0.05],[0.05,0.05,0.7,0.2],[0.05,0.05,0.2,0.7]]),
-        HighGT = [[1,1,2,2],[1,1,2,2]], NumGraphs=30, shuffle=True, seed=None, filename=''):
+        HighLowerGT = [1,1,2,2], HighUpperGT = [1,1,2,2], NumGraphs=30, shuffle=True, seed=None, filename=''):
         
         assert len(L) == len(U), 'This generator only supports the same number of communities in each mode'
         assert ProbArray.shape[1] == len(U), 'The probability array does not match the number of upper communities'
@@ -250,7 +250,10 @@ class HierarchicalConfig():
         self.L = L # L vertices (lower graph part)
         self.U = U # U vertices (upper graph part)
         self.NumEdges=NumEdges
-        self.HighGT = HighGT
+        self.HighGT = [HighLowerGT,HighUpperGT]
+
+        # Reshape ProbArray to the expected array format. This does nothing if already in the right format.
+        ProbArray = np.array(ProbArray).reshape(len(L),len(U))
         
         self.probs = ProbArray  # Array of probability vectors for each community in L, mapping to U.
         self.NumGraphs = NumGraphs # Number of graphs to generate for this experiment
