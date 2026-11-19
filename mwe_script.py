@@ -82,7 +82,7 @@ algos = [
     params = {
         'mode': '2d', # '2d' for 2d approach
         'popsize': 50,
-        'termination': DefaultMultiObjectiveTermination(ftol=1e-4,period=100,n_max_gen=5000,n_max_evals=None),#None, # By default it runs for 1000 generations (or pass a pymoo termination instance)
+        'termination': DefaultMultiObjectiveTermination(ftol=1e-4,period=100,n_max_gen=5000,n_max_evals=None,n_skip=75),#None, # By default it runs for 1000 generations (or pass a pymoo termination instance)
         'save_history': False, # set to True for later hypervolume calculations
         'seed': None, # For reproducibility
         'initialization': 'original',
