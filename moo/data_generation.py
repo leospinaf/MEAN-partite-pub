@@ -240,9 +240,6 @@ class HierarchicalConfig():
         self, L=[40,60,40,60], U=[40,60,40,60], NumEdges=400, ProbArray = np.array([[0.7,0.2,0.05,0.05],[0.2,0.7,0.05,0.05],[0.05,0.05,0.7,0.2],[0.05,0.05,0.2,0.7]]),
         HighGT = [1,1,2,2,1,1,2,2], NumGraphs=30, shuffle=True, seed=None, filename=''):
         
-        assert len(L) == len(U), 'This generator only supports the same number of communities in each mode'
-        #assert ProbArray.shape[1] == len(U), 'The probability array does not match the number of upper communities'
-        #assert len(set([len(g) for g in HighGT])) == 1, 'The hierarchical ground truth does not match the number of upper communities'
         assert len(HighGT) == len(L)+len(U), 'The hierarchical ground truth does not match the base community number'
         
         self.L = L # L vertices (lower graph part)
@@ -252,7 +249,11 @@ class HierarchicalConfig():
 
         # Reshape ProbArray to the expected array format. This does nothing if already in the right format.
         ProbArray = np.array(ProbArray).reshape(len(L),len(U))
-        
+
+        assert np.all((ProbArray >= 0) & (ProbArray <= 1)), 'ProbArray entries must be probabilities in [0,1].'
+        assert ProbArray.sum() > 0, 'ProbArray must contain at least one positive entry.'
+        assert (NumEdges * ProbArray / (np.outer(L, U) * ProbArray).sum()).max() <= 1, 'NumEdges is too large for this ProbArray: a scaled edge probability exceeds 1.'
+
         self.probs = ProbArray  # Array of probability vectors for each community in L, mapping to U.
         self.NumGraphs = NumGraphs # Number of graphs to generate for this experiment
 
@@ -262,10 +263,6 @@ class HierarchicalConfig():
         self.seed = 42 if seed is None else seed
         self.filename=filename
         
-        ## Add a warning around the number of edges.
-        max_in_comm_edges = sum([s*t for s,t in zip(L,U)])
-        if NumEdges > max_in_comm_edges: print('The parameters specify more edges than the maximum within communities. Between community edge probability will be affected.')
-    
     def __str__(self) -> str:
         return f'<HierConfig: filename={self.filename}, L={self.L}, U={self.U}, NumNodes={self.NumNodes}, NumEdges={self.NumEdges}, ProbArray={self.probs}, NumGraphs={self.NumGraphs}, shuffle={self.shuffle}, seed={self.seed}>'
 
@@ -287,23 +284,21 @@ class HierarchicalGenerator():
         self.probs = self.expconfig.probs
         filename = self.expconfig.filename
         vertices = self.expconfig.Vertices
+        M = self.expconfig.NumEdges
         
         ## Make some useful calculations to save time.
-        n_top = sum(U)
         n_bottom = sum(L)
-        n_top_comms = len(U)
-        n_bottom_comms = len(L)
 
-        # Convert the probability array to a series of vectors, one element for each node.
-        probs = np.zeros((len(L),n_top))  ## Rows = bottom comms, cols = top nodes.
-        for i in range(len(L)):
-            j = 0
-            for ind,u in enumerate(U):
-                for _ in range(u):
-                    probs[i,j] = self.probs[i,ind]/u  # Each node's probability is equivalent to the equal sample from the community probability.
-                    j += 1
+        ## ProbArray is treated as the relative per-pair edge probability between each L and U community (Bernoulli SBM).
+        ## Scale it uniformly so the expected number of edges is NumEdges. This preserves the relative block structure.
+        n_pairs = np.outer(L, U)  ## Number of possible node pairs in each block.
+        Q = np.asarray(self.probs, dtype=float)
+        p = Q * M / (n_pairs * Q).sum()
+        assert p.max() <= 1, 'NumEdges is too large for this ProbArray: a scaled edge probability exceeds 1.'
 
-        assert np.abs(np.sum(probs) - probs.shape[0]) < 1e-6, "The probability array is malformed. Check the probabilities you provide are correct."
+        ## Node id offsets of each community (bottom nodes first, then top nodes).
+        L_off = np.concatenate([[0], np.cumsum(L)[:-1]])
+        U_off = np.concatenate([[0], np.cumsum(U)[:-1]]) + n_bottom
 
         i = 0
         comm_labels = {}  ## This dict will give node id: community label with numbering sequentially across both modes, starting from 0.
@@ -323,35 +318,22 @@ class HierarchicalGenerator():
                     higher_comm_labels[i] = h[j]
                     i += 1
 
-        ## Reverse this dict to get a list of bottom node ids within each community label.
-        comm_nodes = {}
-        for k in comm_labels:
-            if k >= n_bottom:  ## We only care about mapping the top nodes.
-                if comm_nodes.get(comm_labels[k]):
-                    comm_nodes[comm_labels[k]].append(k)
-                else:
-                    comm_nodes[comm_labels[k]] = [k]
-
         for it in range(self.expconfig.NumGraphs):
-            ## Sample the bottom nodes for each edge.
-            source_nodes = rng.choice(n_bottom,size=self.expconfig.NumEdges)
+            ## Sample independent binomial edge counts per block, rejecting until the total is exactly NumEdges.
+            ## This is exact conditioning of the Bernoulli SBM on NumEdges. As the expected count equals NumEdges, ~sqrt(2*pi*NumEdges) tries are needed.
+            while True:
+                k = rng.binomial(n_pairs, p)
+                if k.sum() == M:
+                    break
 
-            ## Sample a target node for each source node based on the probability arrays for the community.
-            top_nodes = [n_bottom + i for i in range(n_top)]
-            source_comms = [comm_labels[n] for n in source_nodes]
-            target_nodes = [rng.choice(top_nodes,size=1,p=probs[s])[0] for s in source_comms]
-
-            edges = list(zip(source_nodes,target_nodes))
-
-            ## Resample any duplicate edges.
-            while len(edges) != len(set(edges)):
-                #print('resampling duplicate edges, %d to go' % (len(edges)-len(set(edges))))
-                edges = list(set(edges))
-                ## We have a duplicate edge, resample it.
-                sn = rng.choice(n_bottom,size=self.expconfig.NumEdges-len(edges))
-                cp = [comm_labels[n] for n in sn]
-                tn = [rng.choice(top_nodes,size=1,p=probs[s])[0] for s in cp]
-                edges += list(zip(sn,tn))
+            ## Within each block, choose the edges uniformly without replacement (no duplicates by construction).
+            edges = []
+            for r in range(len(L)):
+                for s in range(len(U)):
+                    if k[r, s]:
+                        idx = rng.choice(n_pairs[r, s], size=k[r, s], replace=False)
+                        bi, ti = np.divmod(idx, U[s])
+                        edges += list(zip((L_off[r] + bi).tolist(), (U_off[s] + ti).tolist()))
         
             # Specify original ground truth
             groundtruth=[comm_labels[i] for i in range(sum(U)+sum(L))]
@@ -393,23 +375,13 @@ class HierarchicalGenerator():
                         raise FileNotFoundError
                 yield g_i_new #, vT, groundtruth,
             else:
-                #T = [groundtruth[i] for i in g_i.clusters()[index_max]]
-                #vT = [vertices[i] for i in g_i.clusters()[index_max]]
-                #g=g_i.clusters().giant()
-                #print(g)
             
                 oldelist = g_i.get_edgelist()
                 oldorder= g_i.clusters()[index_max]#list(range(0,len(T)))
                 order=oldorder.copy()
                 #print(order)
                 rng.shuffle(order)
-                # random.shuffle(order)
-                #print(groundtruth)
-                #print(vT)
-            #    print(oldelist)
-                #
-                #print(oldorder)
-                #print(order)
+
                 selected = g_i.clusters()[index_max]
                 
                 elist=[]
@@ -430,39 +402,14 @@ class HierarchicalGenerator():
                     except ValueError :
                         res = "Element not in list !"
                         # print(res)
-                        
-
-                    # print(elist[i])
-                        #print(i1,i2)
-                #    print(elist) 
-                    
-                # print(order)
-                # print(len(elist))
-                # print(len(oldelist))
-                # print(T)
-                # print(vT)
 
                 labels = [groundtruth[i] for i in order]
                 higher_labels = [higher_groundtruth[i] for i in order]
                 topbottom = [vertices[i] for i in order]
-            #    print(topbottom)
-                #print(labels)
-                #print(topbottom)
-                #print(groundtruth)
-                #print(vT)
-                #print(len(oldelist))
-                #print(len(elist))
                 
                 # Create actual bipartite instance
                 g = igraph.Graph.Bipartite(topbottom,elist)
                 #g_i = Graph.Bipartite(vT,g.get_edgelist())
-
-                # # Store instance and associated ground truth
-                # g.write_edgelist(path+"Graph"+str(it)+".dat")
-                # p = pd.DataFrame(labels)
-                # p.to_csv(path+"Graph"+str(it)+".truth.dat", sep=',',header=None)
-                # p = pd.DataFrame(topbottom)
-                # p.to_csv(path+"Graph"+str(it)+".vertices.dat", sep=',',header=None)
 
                 # Setting attributes
                 g.vs['VX'] = topbottom # Vertices
