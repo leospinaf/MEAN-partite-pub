@@ -805,7 +805,7 @@ class ComDetMultiCriteria(CommunityDetector):
         # Remove duplicates
         results_set = set(temp_results)
         # Building result dicts
-        cols = ['name', 'num_clusters', 'modularity_score', 'modularity_score_1', 'modularity_score_2', 'adj_rand_index', 'modularity_score_barber',
+        cols = ['name', 'num_clusters', 'modularity_score', 'modularity_score_1', 'modularity_score_2', 'adj_rand_index', 'proj0_ari', 'proj1_ari', 'modularity_score_barber',
                 'conductance', 'coverage', 'performance', 'gini', 'modularity_score_murata', 'higher_adj_rand_index', 'proj0_higher_ari', 'proj1_higher_ari']
         self.results_ = [{k:v for k,v in zip(cols, value)} for value in results_set]
 

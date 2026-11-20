@@ -2,7 +2,7 @@
 
 import igraph
 import pandas as pd
-from moo.data_generation import ExpConfig, DataGenerator
+from moo.data_generation import ExpConfig, DataGenerator, HierarchicalConfig, HierarchicalGenerator
 from moo.contestant import get_best_community_solutions, draw_best_community_solutions
 import moo.contestant as contestant
 from moo.multicriteria import ComDetMultiCriteria
@@ -16,14 +16,18 @@ import os
 
 start = time.time()
 
-gen_graphs = False
+gen_graphs = True
 
 if gen_graphs:
     print('Generating new graphs')
     ## Run the data loading.
-    expconfig = ExpConfig(
-        L=[50,50], U=[50,50], NumEdges=200, BC=0.1, NumGraphs=1,
-        shuffle=True, filename='test_graphs_', seed=24#42
+    #expconfig = ExpConfig(
+    #    L=[50,50], U=[50,50], NumEdges=200, BC=0.1, NumGraphs=1,
+    #    shuffle=True, filename='test_graphs_', seed=24#42
+    #)
+    expconfig = HierarchicalConfig(
+        L=[20,20,20,20], U=[20,20,20,20], NumEdges=200, ProbArray=[0.7,0.2,0.05,0.05,0.2,0.7,0.05,0.05,0.05,0.05,0.7,0.2,0.05,0.05,0.2,0.7],
+        HighGT=[1,1,2,2,1,1,2,2],filename='hier_test_',seed=42
     )
 
     print(expconfig) # Print parameters, or access individually, e.g., expconfig.NumEdges
@@ -32,7 +36,8 @@ if gen_graphs:
     start = time.time()
 
     # Generate data following the defined experiment confguration
-    expgen = DataGenerator(expconfig=expconfig) # Pass defined parameters
+    #expgen = DataGenerator(expconfig=expconfig) # Pass defined parameters
+    expgen = HierarchicalGenerator(expconfig=expconfig)
     print(expgen)
     datagen = expgen.generate_data() # datagen is an iterator
 
@@ -48,21 +53,21 @@ else:
 
 ## Define the algorithms.
 algos = [
-    contestant.ComDetMultiLevel(), # Multi-Level approach
-    contestant.ComDetEdgeBetweenness(), # EdgeBetweenness approach
-    contestant.ComDetWalkTrap(), # WalkTrap approach
+    #contestant.ComDetMultiLevel(), # Multi-Level approach
+    #contestant.ComDetEdgeBetweenness(), # EdgeBetweenness approach
+    #contestant.ComDetWalkTrap(), # WalkTrap approach
     contestant.ComDetFastGreedy(), # FastGreedy approach
-    contestant.ComDetBRIM(), # BRIM approach
-    contestant.ComDetBiLouvain(), # sknetwork bilovain
-    contestant.ComDetscale(), # pymocd scale, using the full Pareto front
-    contestant.ComDethpmocd(), # pymocd hpmocd
-    contestant.ComDetmocd_q(), # pymocd mocd_q
-    contestant.ComDetmocd_d(), # pymocd mocd_d
-    contestant.ComDetmoga_net(), # pymocd moga_net (Pizzuti)
-    contestant.ComDetccm(), # pymocd ccm
-    contestant.ComDetkrm(), # pymocd krm
-    contestant.ComDetmmcomo(), # pymocd mmcomo, using the full Pareto front
-    contestant.ComDetSBM(), # sparsebm SBM
+    #contestant.ComDetBRIM(), # BRIM approach
+    #contestant.ComDetBiLouvain(), # sknetwork bilovain
+    #contestant.ComDetscale(), # pymocd scale, using the full Pareto front
+    #contestant.ComDethpmocd(), # pymocd hpmocd
+    #contestant.ComDetmocd_q(), # pymocd mocd_q
+    #contestant.ComDetmocd_d(), # pymocd mocd_d
+    #contestant.ComDetmoga_net(), # pymocd moga_net (Pizzuti)
+    #contestant.ComDetccm(), # pymocd ccm
+    #contestant.ComDetkrm(), # pymocd krm
+    #contestant.ComDetmmcomo(), # pymocd mmcomo, using the full Pareto front
+    #contestant.ComDetSBM(), # sparsebm SBM
     #contestant.ComDetLBM(), # sparsebm LBM
     ComDetMultiCriteria(  # 3D MO approach
     name='3d',
