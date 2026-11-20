@@ -68,6 +68,14 @@ class CommunityDetector():
         # Community detection done here (results stored in self.results_)
         self._detect_communities_impl()
         return self # Needs to return self
+    
+    def _mixed_ground_truth(self, lower_node_gt, upper_node_gt):
+        """
+        Combine two ground truths: lower nodes (type 0) take labels from lower_node_gt,
+        upper nodes (type 1) from upper_node_gt. Prefixes keep the two label spaces distinct.
+        """
+        return [f"l{lower_node_gt[i]}" if v == 0 else f"u{upper_node_gt[i]}"
+                for i, v in enumerate(self.vertices_)]
 
     @staticmethod
     def _labels_to_communities(labels):
@@ -105,8 +113,16 @@ class CommunityDetector():
         adj_rand_index = adjusted_rand_score(self.ground_truth_,graph_labels)
         if self.higher_ground_truth_:
             higher_adj_rand_index = adjusted_rand_score(self.higher_ground_truth_,graph_labels)
+            # Higher GT on lower nodes, lower GT on upper nodes
+            higher_l_lower_u_adj_rand_index = adjusted_rand_score(
+                self._mixed_ground_truth(self.higher_ground_truth_, self.ground_truth_), graph_labels)
+            # Lower GT on lower nodes, higher GT on upper nodes
+            lower_l_higher_u_adj_rand_index = adjusted_rand_score(
+                self._mixed_ground_truth(self.ground_truth_, self.higher_ground_truth_), graph_labels)
         else:
             higher_adj_rand_index = np.nan
+            higher_l_lower_u_adj_rand_index = np.nan
+            lower_l_higher_u_adj_rand_index = np.nan
 
         # Make the ground truth and labels for upper/lower separately for independent ARI calculations.
         proj0_ground_truth = [self.ground_truth_[i] for i in self.proj0_]
@@ -141,6 +157,8 @@ class CommunityDetector():
             modularity_score_2=modularity_score_2,
             adj_rand_index=adj_rand_index,
             higher_adj_rand_index=higher_adj_rand_index,
+            higher_l_lower_u_adj_rand_index=higher_l_lower_u_adj_rand_index,
+            lower_l_higher_u_adj_rand_index = lower_l_higher_u_adj_rand_index,
             proj0_ari=proj0_ari,
             proj1_ari=proj1_ari,
             proj0_higher_ari=proj0_higher_ari,

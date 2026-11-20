@@ -714,6 +714,14 @@ class ComDetMultiCriteria(CommunityDetector):
             verbose=False, # True
         )
 
+    def _mixed_ground_truth(self, lower_node_gt, upper_node_gt):
+        """
+        Combine two ground truths: lower nodes (type 0) take labels from lower_node_gt,
+        upper nodes (type 1) from upper_node_gt. Prefixes keep the two label spaces distinct.
+        """
+        return [f"l{lower_node_gt[i]}" if v == 0 else f"u{upper_node_gt[i]}"
+                for i, v in enumerate(self.problem_.vertices_)]
+
     def collate_results(self):
         # Collate results and eliminate duplicates
         X = self.res_.X
@@ -751,8 +759,16 @@ class ComDetMultiCriteria(CommunityDetector):
             adj_rand_index = adjusted_rand_score(groundtruth,m)
             if higher_ground_truth:
                 higher_adj_rand_index = adjusted_rand_score(higher_ground_truth,m)
+                # Higher GT on lower nodes, lower GT on upper nodes
+                higher_l_lower_u_adj_rand_index = adjusted_rand_score(
+                    self._mixed_ground_truth(higher_ground_truth, groundtruth), m)
+                # Lower GT on lower nodes, higher GT on upper nodes
+                lower_l_higher_u_adj_rand_index = adjusted_rand_score(
+                    self._mixed_ground_truth(groundtruth, higher_ground_truth), m)
             else:
                 higher_adj_rand_index = np.nan
+                higher_l_lower_u_adj_rand_index = np.nan
+                lower_l_higher_u_adj_rand_index = np.nan
 
             proj0_labels=[m[i] for i in proj0] # Community memberships for the 1st two-mode projected graph
             proj1_labels=[m[i] for i in proj1] # Community memberships for the 2nd two-mode projected graph
@@ -797,7 +813,8 @@ class ComDetMultiCriteria(CommunityDetector):
                 self.name_,
                  len(c), modularity_score, modularity_score_1,
                 modularity_score_2, adj_rand_index, proj0_ari, proj1_ari, modularity_score_barber,
-                conductance, coverage, performance, gini, modularity_score_murata, higher_adj_rand_index, proj0_higher_ari, proj1_higher_ari
+                conductance, coverage, performance, gini, modularity_score_murata, higher_adj_rand_index, proj0_higher_ari, proj1_higher_ari, 
+                higher_l_lower_u_adj_rand_index, lower_l_higher_u_adj_rand_index
             )
 
             temp_results.append(result)
@@ -806,7 +823,8 @@ class ComDetMultiCriteria(CommunityDetector):
         results_set = set(temp_results)
         # Building result dicts
         cols = ['name', 'num_clusters', 'modularity_score', 'modularity_score_1', 'modularity_score_2', 'adj_rand_index', 'proj0_ari', 'proj1_ari', 'modularity_score_barber',
-                'conductance', 'coverage', 'performance', 'gini', 'modularity_score_murata', 'higher_adj_rand_index', 'proj0_higher_ari', 'proj1_higher_ari']
+                'conductance', 'coverage', 'performance', 'gini', 'modularity_score_murata', 'higher_adj_rand_index', 'proj0_higher_ari', 'proj1_higher_ari',
+                'higher_l_lower_u_adj_rand_index', 'lower_l_higher_u_adj_rand_index']
         self.results_ = [{k:v for k,v in zip(cols, value)} for value in results_set]
 
     def compute_hypervolume(self):
