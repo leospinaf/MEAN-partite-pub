@@ -147,6 +147,11 @@ class CommunityDetector():
 
         gini = skbio_gini.gini_index([len(c) for c in communities])
 
+        if self.params_.get('return_membership'):
+            mem_out = graph_labels
+        else:
+            mem_out = 'Not returned'
+
         return dict(
             name=self.name_,
             num_clusters=len(communities),
@@ -167,6 +172,7 @@ class CommunityDetector():
             coverage=coverage,
             performance=performance,
             gini=gini,
+            membership=mem_out
         )
 
     def _add_partition(self, labels):

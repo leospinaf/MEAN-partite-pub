@@ -807,6 +807,11 @@ class ComDetMultiCriteria(CommunityDetector):
             coverage = cdlib.evaluation.edges_inside(self.problem_.graph_,clust).score
             performance = bi_performance(badj, proj0_labels+proj1_labels)
             gini = skbio_gini.gini_index([len(c) for c in communities])
+
+            if self.params_.get('return_membership'):
+                mem_out = m
+            else:
+                mem_out = 'Not returned'
             
             # Returning a tuple instead in order to remove coordinates
             result = (
@@ -814,7 +819,7 @@ class ComDetMultiCriteria(CommunityDetector):
                  len(c), modularity_score, modularity_score_1,
                 modularity_score_2, adj_rand_index, proj0_ari, proj1_ari, modularity_score_barber,
                 conductance, coverage, performance, gini, modularity_score_murata, higher_adj_rand_index, proj0_higher_ari, proj1_higher_ari, 
-                higher_l_lower_u_adj_rand_index, lower_l_higher_u_adj_rand_index
+                higher_l_lower_u_adj_rand_index, lower_l_higher_u_adj_rand_index, mem_out
             )
 
             temp_results.append(result)
@@ -824,7 +829,7 @@ class ComDetMultiCriteria(CommunityDetector):
         # Building result dicts
         cols = ['name', 'num_clusters', 'modularity_score', 'modularity_score_1', 'modularity_score_2', 'adj_rand_index', 'proj0_ari', 'proj1_ari', 'modularity_score_barber',
                 'conductance', 'coverage', 'performance', 'gini', 'modularity_score_murata', 'higher_adj_rand_index', 'proj0_higher_ari', 'proj1_higher_ari',
-                'higher_l_lower_u_adj_rand_index', 'lower_l_higher_u_adj_rand_index']
+                'higher_l_lower_u_adj_rand_index', 'lower_l_higher_u_adj_rand_index', 'membership']
         self.results_ = [{k:v for k,v in zip(cols, value)} for value in results_set]
 
     def compute_hypervolume(self):
