@@ -16,12 +16,13 @@ class CommunityDetector():
     Results are in self.params_ dictionary
     """
 
-    def __init__(self, name="", params=None, min_num_clusters=1, max_num_clusters=30) -> None:
+    def __init__(self, name="", params=None, min_num_clusters=1, max_num_clusters=30,return_membership=False) -> None:
         # Any parameters not related to the data (Graph)
         # need to be defined here and have default values (in subclasses)
         self.name_ = name
         self.params_ = dict() if params is None else params # Parameters of the community detector
         self.results_ = [] # Results (list of dictionaries)
+        self.return_membership = return_membership
 
         assert min_num_clusters >= 1 and min_num_clusters <= max_num_clusters,\
         f"The minimum {min_num_clusters} and maximum {max_num_clusters} cluster numbers are not valid"
@@ -147,8 +148,8 @@ class CommunityDetector():
 
         gini = skbio_gini.gini_index([len(c) for c in communities])
 
-        if self.params_.get('return_membership'):
-            mem_out = graph_labels
+        if self.return_membership:
+            mem_out = tuple(graph_labels)
         else:
             mem_out = 'Not returned'
 
@@ -192,8 +193,8 @@ class CommunityDetector():
 
 
 class ComDetFastGreedy(CommunityDetector):
-    def __init__(self, name= "fastgreedy", params = {'weights': None}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name= "fastgreedy", params = {'weights': None}, min_num_clusters=1, max_num_clusters=30,return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters,return_membership)
 
     def _detect_communities_impl(self):
         # Actual community detection code  
@@ -211,8 +212,8 @@ class ComDetFastGreedy(CommunityDetector):
 
 
 class ComDetEdgeBetweenness(CommunityDetector):
-    def __init__(self, name= "edgebetweenness", params = {'directed': False, 'weights': None}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name= "edgebetweenness", params = {'directed': False, 'weights': None}, min_num_clusters=1, max_num_clusters=30,return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters,return_membership)
 
     def _detect_communities_impl(self):
         # Actual community detection code
@@ -230,8 +231,8 @@ class ComDetEdgeBetweenness(CommunityDetector):
 
 
 class ComDetWalkTrap(CommunityDetector):
-    def __init__(self, name= "walktrap", params = {'weights': None, 'steps': 4}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name= "walktrap", params = {'weights': None, 'steps': 4}, min_num_clusters=1, max_num_clusters=30,return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
 
     def _detect_communities_impl(self):
@@ -250,8 +251,8 @@ class ComDetWalkTrap(CommunityDetector):
 
 
 class ComDetMultiLevel(CommunityDetector):
-    def __init__(self, name= "multilevel", params = {'weights': None, 'return_levels': False}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name= "multilevel", params = {'weights': None, 'return_levels': False}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
     def _detect_communities_impl(self):
         # Actual community detection code
@@ -322,8 +323,8 @@ class ComDetMultiLevel(CommunityDetector):
 
 
 class ComDetBRIMNoPert(CommunityDetector):
-    def __init__(self, name= "brim", params = {'method': 'LCS', 'project': False}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name= "brim", params = {'method': 'LCS', 'project': False}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
     def _detect_communities_impl(self):
         # Actual community detection code
@@ -366,9 +367,9 @@ class ComDetBRIMNoPert(CommunityDetector):
 
 
 class ComDetBRIM(CommunityDetector):
-    def __init__(self, name= "brim", params = {'method': 'LCS', 'project': False}, min_num_clusters=1, max_num_clusters=30) -> None:
+    def __init__(self, name= "brim", params = {'method': 'LCS', 'project': False}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
         #FIXME - min_num_clusters and max_num_clusters not making it to co object
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
         self.__test_condor_version()
 
 
@@ -445,8 +446,8 @@ class ComDetBRIM(CommunityDetector):
 
 
 class ComDetBiLouvain(CommunityDetector):
-    def __init__(self, name= "bilouvain", params = {'weights': None}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name= "bilouvain", params = {'weights': None}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
     def _detect_communities_impl(self):
         # Actual community detection code
@@ -516,43 +517,43 @@ class _PymocdCommunityDetector(CommunityDetector):
 class ComDethpmocd(_PymocdCommunityDetector):
     _pymocd_func = staticmethod(pymocd.hpmocd)
 
-    def __init__(self, name="hpmocd", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name="hpmocd", params={}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
 
 class ComDetmocd_q(_PymocdCommunityDetector):
     _pymocd_func = staticmethod(pymocd.mocd_q)
 
-    def __init__(self, name="mocd_q", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name="mocd_q", params={}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
 
 class ComDetmocd_d(_PymocdCommunityDetector):
     _pymocd_func = staticmethod(pymocd.mocd_d)
 
-    def __init__(self, name="mocd_d", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name="mocd_d", params={}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
 
 class ComDetmoga_net(_PymocdCommunityDetector):
     _pymocd_func = staticmethod(pymocd.moga_net)
 
-    def __init__(self, name="moga_net", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name="moga_net", params={}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
 
 class ComDetccm(_PymocdCommunityDetector):
     _pymocd_func = staticmethod(pymocd.ccm)
 
-    def __init__(self, name="ccm", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name="ccm", params={}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
 
 class ComDetkrm(_PymocdCommunityDetector):
     _pymocd_func = staticmethod(pymocd.krm)
 
-    def __init__(self, name="krm", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name="krm", params={}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
 
 class _PymocdFrontCommunityDetector(CommunityDetector):
@@ -603,21 +604,21 @@ class _PymocdFrontCommunityDetector(CommunityDetector):
 class ComDetmmcomo(_PymocdFrontCommunityDetector):
     _pymocd_func = staticmethod(pymocd.mmcomo_fronts)
 
-    def __init__(self, name="mmcomo", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name="mmcomo", params={}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
 class ComDetscale(_PymocdFrontCommunityDetector):
     _pymocd_func = staticmethod(pymocd.scale_fronts)
 
-    def __init__(self, name="scale", params={}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name="scale", params={}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
 
 from sparsebm import SBM,LBM
 from sparsebm import ModelSelection  ## Can use this if we want the model to determine the number of clusters.
 class ComDetSBM(CommunityDetector):
-    def __init__(self, name= "SBM", params = {}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name= "SBM", params = {}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
     def _detect_communities_impl(self):
         # Actual community detection code
@@ -661,8 +662,8 @@ class ComDetSBM(CommunityDetector):
             self._add_partition(graph_labels)
 
 class ComDetLBM(CommunityDetector):
-    def __init__(self, name= "LBM", params = {}, min_num_clusters=1, max_num_clusters=30) -> None:
-        super().__init__(name, params, min_num_clusters, max_num_clusters)
+    def __init__(self, name= "LBM", params = {}, min_num_clusters=1, max_num_clusters=30, return_membership=False) -> None:
+        super().__init__(name, params, min_num_clusters, max_num_clusters, return_membership)
 
     def _detect_communities_impl(self):
         # Actual community detection code

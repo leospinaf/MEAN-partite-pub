@@ -809,7 +809,7 @@ class ComDetMultiCriteria(CommunityDetector):
             gini = skbio_gini.gini_index([len(c) for c in communities])
 
             if self.params_.get('return_membership'):
-                mem_out = m
+                mem_out = tuple(m)
             else:
                 mem_out = 'Not returned'
             

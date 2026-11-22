@@ -56,7 +56,7 @@ algos = [
     #contestant.ComDetMultiLevel(), # Multi-Level approach
     #contestant.ComDetEdgeBetweenness(), # EdgeBetweenness approach
     #contestant.ComDetWalkTrap(), # WalkTrap approach
-    contestant.ComDetFastGreedy(), # FastGreedy approach
+    contestant.ComDetFastGreedy(return_membership=True), # FastGreedy approach
     #contestant.ComDetBRIM(), # BRIM approach
     #contestant.ComDetBiLouvain(), # sknetwork bilovain
     #contestant.ComDetscale(), # pymocd scale, using the full Pareto front
@@ -80,6 +80,7 @@ algos = [
         'initialization': 'original',
         'mutation': '',#'enhanced',
         'enhance':0,
+        'return_membership':True,
     }
 ),
     ComDetMultiCriteria(  # 2D MO approach
