@@ -13,6 +13,9 @@ import time
 from copy import deepcopy
 from pymoo.termination.default import DefaultMultiObjectiveTermination
 import os
+from sklearn.metrics import adjusted_rand_score
+import numpy as np
+import networkx as nx
 
 start = time.time()
 
@@ -114,7 +117,62 @@ for g_idx, graph in enumerate(datagen):
 df_contestants = pd.DataFrame(results)
 best_solutions = get_best_community_solutions(df_contestants).reset_index(drop=True)
 
-fig, ax = plt.subplots(figsize=(15,8))
-ax, stats = draw_best_community_solutions(best_solutions,ax)
+#fig, ax = plt.subplots(figsize=(15,8))
+#ax, stats = draw_best_community_solutions(best_solutions,ax)
+
+# Calculate the ARI at the higher level for each solution.
+gt = graph.vs['HGT']
+df_contestants['hier_ari_check'] = [adjusted_rand_score(gt,comms) if comms != 'Not returned' else np.nan for comms in df_contestants['membership']]
+
+# --- settings ---------------------------------------------------------------
+COLOUR_ATTRS = ("GT", "HGT", "membership")  # one per panel
+TYPE_ATTR = "type"
+LAYOUT = "spring"                 # "bipartite" or "spring"
+NODE_SIZE = 120
+CMAP = "viridis"                     # numeric attributes
+CAT_CMAP = "tab10"                   # categorical attributes
+# ----------------------------------------------------------------------------
+
+SHAPES = ["o", "s", "^", "D", "v", "p", "h", "*"]
+
+from plot_bipartite import *
+
+# Convert to nx for plotting
+G = graph.to_networkx()
+
+types = sorted({d.get(TYPE_ATTR) for _, d in G.nodes(data=True)}, key=str)
+shape_map = {t: SHAPES[i % len(SHAPES)] for i, t in enumerate(types)}
+pos = compute_layout(G, TYPE_ATTR, LAYOUT)  # shared across panels
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 6.5))
+for ax, attr in zip(axes, COLOUR_ATTRS):
+    draw_panel(ax, G, pos, attr, TYPE_ATTR, shape_map)
+fig.tight_layout()
+plt.savefig('lower_upper_gt_colours.png',bbox_inches='tight')
+plt.close()
+
+max_ari = {}  # method: max ari
+for id, sol in df_contestants.iterrows():
+    if max_ari.get(sol['name']) == None:
+        plot_it = True
+
+    elif sol['adj_rand_index'] > max_ari[sol['name']]:
+        plot_it = True
+    else:
+        plot_it = False
+    
+    if plot_it:
+
+        max_ari[sol['name']] = sol['adj_rand_index']
+
+        nx.set_node_attributes(G, dict(zip(G.nodes, sol['membership'])), "membership")
+        fig, axes = plt.subplots(1, 3, figsize=(21, 6.5))
+        for ax, attr in zip(axes, COLOUR_ATTRS):
+            print(f'plotting {attr}')
+            draw_panel(ax, G, pos, attr, TYPE_ATTR, shape_map)
+        fig.tight_layout()
+        plt.savefig(f'best_{sol["name"]}.png',bbox_inches='tight')
+        plt.close()
+
 
 code.interact(local=locals())

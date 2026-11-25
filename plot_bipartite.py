@@ -11,18 +11,6 @@ import networkx as nx
 from matplotlib.lines import Line2D
 import igraph as ig
 
-# --- settings ---------------------------------------------------------------
-GML_PATH = "moo/dummy_0.gml"
-COLOUR_ATTRS = ("GT", "HGT")  # one per panel
-TYPE_ATTR = "type"
-LAYOUT = "spring"                 # "bipartite" or "spring"
-NODE_SIZE = 120
-CMAP = "viridis"                     # numeric attributes
-CAT_CMAP = "tab10"                   # categorical attributes
-# ----------------------------------------------------------------------------
-
-SHAPES = ["o", "s", "^", "D", "v", "p", "h", "*"]
-
 
 def compute_layout(G, type_attr, layout):
     if layout == "bipartite":
@@ -33,7 +21,7 @@ def compute_layout(G, type_attr, layout):
     return nx.spring_layout(G, seed=42)
 
 
-def draw_panel(ax, G, pos, colour_attr, type_attr, shape_map):
+def draw_panel(ax, G, pos, colour_attr, type_attr, shape_map,CAT_CMAP="tab10",NODE_SIZE=120):
     values = [G.nodes[n].get(colour_attr) for n in G.nodes]
     present = [v for v in values if v is not None]
     numeric = False#bool(present) and all(isinstance(v, Number) and not isinstance(v, bool) for v in present)
@@ -96,14 +84,27 @@ def load_gml(path):
     return G
  
  
-G = load_gml(GML_PATH)
+if __name__ == "__main__":
+    # --- settings ---------------------------------------------------------------
+    GML_PATH = "moo/dummy_0.gml"
+    COLOUR_ATTRS = ("GT", "HGT")  # one per panel
+    TYPE_ATTR = "type"
+    LAYOUT = "spring"                 # "bipartite" or "spring"
+    NODE_SIZE = 120
+    CMAP = "viridis"                     # numeric attributes
+    CAT_CMAP = "tab10"                   # categorical attributes
+    # ----------------------------------------------------------------------------
 
-types = sorted({d.get(TYPE_ATTR) for _, d in G.nodes(data=True)}, key=str)
-shape_map = {t: SHAPES[i % len(SHAPES)] for i, t in enumerate(types)}
-pos = compute_layout(G, TYPE_ATTR, LAYOUT)  # shared across panels
+    SHAPES = ["o", "s", "^", "D", "v", "p", "h", "*"]
 
-fig, axes = plt.subplots(1, 2, figsize=(14, 6.5))
-for ax, attr in zip(axes, COLOUR_ATTRS):
-    draw_panel(ax, G, pos, attr, TYPE_ATTR, shape_map)
-fig.tight_layout()
-plt.show()
+    G = load_gml(GML_PATH)
+
+    types = sorted({d.get(TYPE_ATTR) for _, d in G.nodes(data=True)}, key=str)
+    shape_map = {t: SHAPES[i % len(SHAPES)] for i, t in enumerate(types)}
+    pos = compute_layout(G, TYPE_ATTR, LAYOUT)  # shared across panels
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6.5))
+    for ax, attr in zip(axes, COLOUR_ATTRS):
+        draw_panel(ax, G, pos, attr, TYPE_ATTR, shape_map)
+    fig.tight_layout()
+    plt.show()
