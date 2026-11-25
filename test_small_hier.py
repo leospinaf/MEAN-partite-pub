@@ -26,7 +26,7 @@ print('Generating new graphs')
 #    shuffle=True, filename='test_graphs_', seed=24#42
 #)
 expconfig = HierarchicalConfig(
-	L=[5,5,5,5,5], U=[5,5,5,5], NumEdges=50, ProbArray=[0.7,0.2,0.05,0.05,0.2,0.7,0.05,0.05,0.2,0.2,0.2,0.2,0.05,0.05,0.7,0.2,0.05,0.05,0.2,0.7],
+	L=[5,5,5,5,5], U=[5,5,5,5], NumEdges=150, ProbArray=[0.9,0.2,0.05,0.05,0.2,0.9,0.05,0.05,0.2,0.2,0.2,0.2,0.05,0.05,0.9,0.2,0.05,0.05,0.2,0.9],
 	HighGT=[1,1,2,2,2,1,1,2,2],filename='hier_test_',seed=42,NumGraphs=1
 )
 
