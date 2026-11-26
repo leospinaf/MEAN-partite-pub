@@ -719,7 +719,7 @@ class ComDetMultiCriteria(CommunityDetector):
         Combine two ground truths: lower nodes (type 0) take labels from lower_node_gt,
         upper nodes (type 1) from upper_node_gt. Prefixes keep the two label spaces distinct.
         """
-        return [f"l{lower_node_gt[i]}" if v == 0 else f"u{upper_node_gt[i]}"
+        return [lower_node_gt[i] if v == 0 else upper_node_gt[i]
                 for i, v in enumerate(self.problem_.vertices_)]
 
     def collate_results(self):
