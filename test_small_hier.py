@@ -26,7 +26,7 @@ print('Generating new graphs')
 #    shuffle=True, filename='test_graphs_', seed=24#42
 #)
 expconfig = HierarchicalConfig(
-	L=[5,5,5,5,5], U=[5,5,5,5], NumEdges=150, ProbArray=[0.9,0.2,0.05,0.05,0.2,0.9,0.05,0.05,0.2,0.2,0.2,0.2,0.05,0.05,0.9,0.2,0.05,0.05,0.2,0.9],
+	L=[5,5,5,5,5], U=[5,5,5,5], NumEdges=120, ProbArray=[0.9,0.2,0.01,0.01,0.2,0.9,0.01,0.01,0.3,0.3,0.3,0.3,0.01,0.01,0.9,0.2,0.01,0.01,0.2,0.9],
 	HighGT=[1,1,2,2,2,1,1,2,2],filename='hier_test_',seed=42,NumGraphs=1
 )
 
@@ -168,7 +168,7 @@ for id, sol in df_contestants.iterrows():
         nx.set_node_attributes(G, dict(zip(G.nodes, sol['membership'])), "membership")
         fig, axes = plt.subplots(1, 3, figsize=(21, 6.5))
         for ax, attr in zip(axes, COLOUR_ATTRS):
-            print(f'plotting {attr}')
+            #print(f'plotting {attr}')
             draw_panel(ax, G, pos, attr, TYPE_ATTR, shape_map)
         fig.tight_layout()
         plt.savefig(f'best_{sol["name"]}.png',bbox_inches='tight')
